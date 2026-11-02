@@ -5,6 +5,7 @@ status: failing
 priority: should
 source: manual
 tags: [tasks, filters]
+sets: [demo, production]
 verify: [browser]
 tests:
   e2e: [tests/e2e/stories/US-003.spec.ts]

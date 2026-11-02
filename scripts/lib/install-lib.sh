@@ -454,6 +454,35 @@ ensure_gitignore_lines() {
     printf '%s' "$missing" >> "$file"
 }
 
+# Set level: in agent-os/testing.yml (demo or production). Only called with --level.
+set_testing_level() {
+    local level=$1 file="$PROJECT_DIR/agent-os/testing.yml"
+    case "$level" in
+        demo|production) ;;
+        *) print_error "--level must be demo or production (got: $level)"; return 1 ;;
+    esac
+    if [[ -f "$file" ]] && grep -qE "^level:[[:space:]]*${level}[[:space:]]*(#.*)?$" "$file"; then
+        return 0
+    fi
+    if [[ "$DRY_RUN" == "true" ]]; then
+        echo "  would set level: $level in agent-os/testing.yml"
+        return 0
+    fi
+    track_modify "$file"
+    if [[ -f "$file" ]] && grep -qE '^level:' "$file"; then
+        local tmp
+        tmp=$(mktemp)
+        awk -v lvl="$level" '/^level:/ && !done { print "level: " lvl; done=1; next } { print }' "$file" > "$tmp"
+        cat "$tmp" > "$file"; rm -f "$tmp"
+    elif [[ -f "$file" ]]; then
+        printf '\n# Testing level: demo (happy path) or production (edge cases, full regression)\nlevel: %s\n' "$level" >> "$file"
+    else
+        mkdir -p "$(dirname "$file")"
+        printf 'level: %s\n' "$level" > "$file"
+    fi
+    print_success "Testing level set to $level (agent-os/testing.yml)"
+}
+
 write_version_marker() {
     local file="$PROJECT_DIR/agent-os/.version"
     if [[ -f "$file" && "$(cat "$file")" == "$AOS_VERSION" ]]; then

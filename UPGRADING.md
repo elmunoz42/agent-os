@@ -64,6 +64,7 @@ Undoes the most recent install or migration from its manifest in `agent-os/.back
 
 ## After upgrading
 
-1. Check `agent-os/testing.yml` (or let `/verify-stories` detect and fill it in).
+1. Check `agent-os/testing.yml` (or let `/verify-stories` detect and fill it in). Set `level: demo` for customer demos or `level: production` for code that ships, or pass `--level` to migrate.sh; if you leave it empty, agents ask once and save the answer.
+   Existing stories without `sets` count as part of both the demo and production sets.
 2. `/write-user-stories backfill` for existing features, or let `/shape-spec` add stories as you go.
 3. `/verify-stories` to run the first browser pass and generate story tests.

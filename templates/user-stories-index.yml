@@ -7,4 +7,5 @@
 #   title: Sign up with email
 #   status: draft        # draft | ready | verified | failing
 #   tags: [auth]
+#   sets: [demo, production]  # [production] for edge only stories
 #   source: manual       # manual | prd-m1 | spec:<folder>

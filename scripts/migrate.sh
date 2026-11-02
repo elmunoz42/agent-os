@@ -22,6 +22,7 @@ LINK_MODE="symlink"
 WITH_PRD="false"
 PRD_REF="main"
 PRD_SOURCE=""
+TEST_LEVEL=""
 BRANCH=""
 SCAN_DIR=""
 SCAN_DEPTH=4
@@ -47,6 +48,7 @@ Options:
     --tools <list>       claude,codex,cursor (default: all)
     --copy               Copy skills into .claude/skills instead of symlinking
     --with-prd           Also install the Builder Methods PRD Creator skill
+    --level <level>      Set the testing level: demo or production
     --prd-ref <ref>      bm-skills branch or tag (default: main)
     --prd-source <dir>   Local bm-skills checkout to install from
     --verbose            Show detailed output
@@ -74,6 +76,7 @@ parse_arguments() {
             --tools) TOOLS="$2"; shift 2 ;;
             --copy) LINK_MODE="copy"; shift ;;
             --with-prd) WITH_PRD="true"; shift ;;
+            --level) TEST_LEVEL="$2"; shift 2 ;;
             --prd-ref) PRD_REF="$2"; shift 2 ;;
             --prd-source) PRD_SOURCE="$2"; WITH_PRD="true"; shift 2 ;;
             --verbose) VERBOSE="true"; shift ;;
@@ -193,6 +196,7 @@ migrate_project() {
     if [[ "$WITH_PRD" == "true" ]]; then
         install_prd_skill || true
     fi
+    if [[ -n "$TEST_LEVEL" ]]; then set_testing_level "$TEST_LEVEL" || return 1; fi
     write_version_marker
     local session="$BACKUP_DIR"
     end_change_session
@@ -327,6 +331,9 @@ run_scan() {
 
 main() {
     parse_arguments "$@"
+    if [[ -n "$TEST_LEVEL" && "$TEST_LEVEL" != demo && "$TEST_LEVEL" != production ]]; then
+        print_error "--level must be demo or production (got: $TEST_LEVEL)"; exit 1
+    fi
     if [[ -n "$SCAN_DIR" ]]; then
         run_scan "$(cd "$SCAN_DIR" && pwd)"
         return $?

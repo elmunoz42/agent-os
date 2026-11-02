@@ -1,7 +1,7 @@
 import { test, expect, addTask } from '../fixtures';
 
 test.describe('US-002 Complete a task', () => {
-  test('US-002 AC1: checking a task marks it done and updates the count @US-002', async ({ page }) => {
+  test('US-002 AC1: checking a task marks it done and updates the count @US-002 @demo', async ({ page }) => {
     await addTask(page, 'Write docs');
     await addTask(page, 'Ship release');
 

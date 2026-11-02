@@ -7,7 +7,7 @@ This project uses [Agent OS](https://github.com/elmunoz42/agent-os) (fork 3.1). 
 - `agent-os/product/`: mission, roadmap, tech stack.
 - `agent-os/specs/`: shaped specs, one folder per feature.
 - `agent-os/user-stories/`: long lived user stories with acceptance criteria (index in `agent-os/user-stories/index.yml`).
-- `agent-os/testing.yml`: how to start the app and run unit and e2e tests.
+- `agent-os/testing.yml`: testing level (demo or production), how to start the app, and how to run unit and e2e tests.
 
 Skills (in `.agents/skills/`, linked into `.claude/skills/`): plan-product, shape-spec, discover-standards, inject-standards, index-standards, write-user-stories, verify-stories, prd-to-stories, and bm-prd-creator if installed.
 
@@ -15,5 +15,6 @@ Rules for agents:
 - When a change affects user-facing behavior, find the related stories in `agent-os/user-stories/index.yml` and keep them accurate.
 - Before declaring a feature, spec, or milestone done, run the verify-stories skill for its stories. A story counts as verified only when its acceptance criteria passed in a real browser and are covered by committed tests.
 - When building from a PRD milestone (`_build_plan/milestones/*/prompt.md`), run verify-stories for that milestone before writing `milestone-log.md`, and include the verification result in the log.
+- Testing level: read `level:` in `agent-os/testing.yml`. Demo means happy path stories and tests, fast, moderate checks. Production means edge cases and full regression tests. If it is empty, ask the user once which applies and save the answer there before writing stories or tests.
 - Never edit a story to match a bug. Report the failure instead.
 <!-- agent-os:end -->

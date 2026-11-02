@@ -5,6 +5,7 @@ US-001:
   title: Add a task
   status: verified
   tags: [tasks]
+  sets: [demo, production]
   source: manual
 
 US-002:
@@ -12,6 +13,7 @@ US-002:
   title: Complete a task
   status: verified
   tags: [tasks]
+  sets: [demo, production]
   source: manual
 
 US-003:
@@ -19,4 +21,13 @@ US-003:
   title: Show only active tasks
   status: failing
   tags: [tasks, filters]
+  sets: [demo, production]
+  source: manual
+
+US-004:
+  file: US-004-reject-long-titles.md
+  title: Reject task titles over 120 characters
+  status: verified
+  tags: [tasks, validation]
+  sets: [production]
   source: manual

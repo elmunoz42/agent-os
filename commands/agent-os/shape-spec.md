@@ -114,6 +114,8 @@ Read the confirmed standards files to include their content in the plan context.
 
 Read `agent-os/user-stories/index.yml` if it exists. Find stories this work creates or changes.
 
+Resolve the testing level first (`level:` in `agent-os/testing.yml`; if empty, ask demo or production once and save it; see the write-user-stories skill's `references/testing-levels.md`). Demo specs get happy path stories only. Production specs also get `(edge)` ACs.
+
 Use AskUserQuestion:
 
 ```
@@ -176,7 +178,7 @@ Create `agent-os/specs/{folder-name}/` with:
 
 ## Final Task: Verify Stories
 
-Run the verify-stories skill for the stories in stories.md: check each acceptance criterion in a real browser, harden passing checks into committed tests, and report failures.
+Run the verify-stories skill, at the project's testing level, for the stories in stories.md: check each acceptance criterion in a real browser, harden passing checks into committed tests, and report failures.
 
 ---
 

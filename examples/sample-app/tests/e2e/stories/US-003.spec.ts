@@ -6,7 +6,7 @@ test.describe('US-003 Show only active tasks', () => {
   // so remove it as part of the fix.
   test.fail();
 
-  test('US-003 AC1: the Active filter hides completed tasks @US-003', async ({ page }) => {
+  test('US-003 AC1: the Active filter hides completed tasks @US-003 @demo', async ({ page }) => {
     await addTask(page, 'Write docs');
     await addTask(page, 'Ship release');
     await page.getByRole('checkbox', { name: 'Complete Write docs' }).check();

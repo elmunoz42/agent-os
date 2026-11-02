@@ -56,6 +56,8 @@ Write these? (yes / edit / skip milestone)
 
 Continue IDs from `agent-os/user-stories/index.yml`. Set `source: prd-m<N>`, `status: draft`, tags from the feature name.
 
+Resolve the testing level first (see `../write-user-stories/references/testing-levels.md`). A PRD's Done when criteria are happy path, so they become untagged ACs with `sets: [demo, production]`. At production level, also add `(edge)` ACs from the edge case checklist and from each milestone's explicit exclusions where they imply a guard (for example, a clear message instead of a crash).
+
 ### Step 4: Write files and index
 
 Write each story file and index entry exactly as write-user-stories does.

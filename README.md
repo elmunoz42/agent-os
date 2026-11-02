@@ -20,7 +20,7 @@ cd /path/to/your/project
 ~/agent-os/scripts/project-install.sh --with-prd
 ```
 
-Useful flags: `--tools claude,codex,cursor` (default all), `--copy` (no symlinks, for Windows), `--commands-only` (keep standards), `--dry-run`, `--yes`.
+Useful flags: `--level demo|production`, `--tools claude,codex,cursor` (default all), `--copy` (no symlinks, for Windows), `--commands-only` (keep standards), `--dry-run`, `--yes`.
 
 ### Upgrade existing projects
 
@@ -54,6 +54,19 @@ Claude Code users can also install the skills globally as a plugin: `/plugin mar
 3. `/shape-spec` links or writes stories and ends every plan with a verification task
 4. Build
 5. `/verify-stories spec:<folder>` (or `prd-m1`, a story ID, a tag)
+
+### Demo or production testing
+
+Every project has a testing level in `agent-os/testing.yml`:
+
+| | demo | production |
+|---|---|---|
+| For | Customer demos, prototypes | Code that ships |
+| Stories and ACs | Happy path only | Happy path plus `(edge)` cases |
+| Playwright tests | One happy path test per story, `@demo` | One per AC, `@demo` and `@prod` |
+| Speed | Fast, moderate checks | Thorough |
+
+Stories carry `sets: [demo, production]`, or `[production]` for edge-only stories, and edge ACs are tagged `(edge)`. Agents read the level, and if it's empty they ask once and save the answer. Set it up front with `project-install.sh --level demo` (or `production`), or override one run with `/verify-stories --level production`. Moving a demo to production keeps every story and adds the edge cases. Run `npx playwright test --grep @demo` before a demo, and `--grep @US` for everything.
 
 See `examples/sample-app/` for stories, a real verification report with screenshots, and story tagged Playwright tests, including a known failing story.
 

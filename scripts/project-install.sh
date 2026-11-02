@@ -30,6 +30,7 @@ LINK_MODE="symlink"
 WITH_PRD="false"
 PRD_REF="main"
 PRD_SOURCE=""
+TEST_LEVEL=""
 SCAFFOLD_STORIES="true"
 KEEP_LEGACY_COMMANDS="false"
 
@@ -52,6 +53,8 @@ Options:
     --prd-ref <ref>         bm-skills branch or tag for --with-prd (default: main)
     --prd-source <dir>      Use a local bm-skills checkout instead of cloning
     --no-stories            Skip scaffolding agent-os/user-stories and testing.yml
+    --level <level>         Testing level: demo (happy path) or production (edge cases).
+                            Omit to have agents ask once and save the answer.
     --keep-legacy-commands  Keep .claude/commands/agent-os/*.md files that collide with skills
     --dry-run               Show what would change without writing anything
     -y, --yes               Do not prompt (assume yes)
@@ -107,6 +110,10 @@ parse_arguments() {
             --prd-source)
                 PRD_SOURCE="$2"
                 WITH_PRD="true"
+                shift 2
+                ;;
+            --level)
+                TEST_LEVEL="$2"
                 shift 2
                 ;;
             --no-stories)
@@ -473,6 +480,9 @@ main() {
     parse_arguments "$@"
 
     # Validations
+    if [[ -n "$TEST_LEVEL" && "$TEST_LEVEL" != demo && "$TEST_LEVEL" != production ]]; then
+        print_error "--level must be demo or production (got: $TEST_LEVEL)"; exit 1
+    fi
     validate_not_in_base
     validate_base_installation
 
@@ -518,6 +528,7 @@ main() {
         install_agent_files
         [[ "$SCAFFOLD_STORIES" == "true" ]] && scaffold_stories
         [[ "$WITH_PRD" == "true" ]] && install_prd_skill
+        if [[ -n "$TEST_LEVEL" ]]; then set_testing_level "$TEST_LEVEL"; fi
         write_version_marker
         echo ""
         print_success "Dry run complete. Nothing was written."
@@ -539,6 +550,7 @@ main() {
         echo ""
         install_prd_skill || true
     fi
+    if [[ -n "$TEST_LEVEL" ]]; then set_testing_level "$TEST_LEVEL" || exit 1; fi
     write_version_marker
     end_change_session
 

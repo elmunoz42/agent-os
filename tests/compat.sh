@@ -192,13 +192,15 @@ if $CLAUDE_E2E; then
         E="$WORK/e2e"; cp -R "$ROOT/examples/sample-app" "$E"; rm -rf "$E/agent-os/user-stories/_runs"
         # Own port, so a concurrent sample app run (tests/run.sh --e2e) cannot interfere
         sed -i.bak -e 's#start: npm run dev#start: PORT=4199 npm run dev#' -e 's#localhost:4173#localhost:4199#' "$E/agent-os/testing.yml" && rm -f "$E/agent-os/testing.yml.bak"
-        sed -i.bak 's/status: verified/status: ready/' "$E"/agent-os/user-stories/*.md "$E"/agent-os/user-stories/index.yml && rm -f "$E"/agent-os/user-stories/*.bak "$E"/agent-os/user-stories/index.yml.bak
+        sed -i.bak -e 's/status: verified/status: ready/' -e '/^verified_level:/d' "$E"/agent-os/user-stories/*.md "$E"/agent-os/user-stories/index.yml && rm -f "$E"/agent-os/user-stories/*.bak "$E"/agent-os/user-stories/index.yml.bak
         ( cd "$E" && git init -q && "$ROOT/scripts/project-install.sh" --yes >/dev/null 2>&1 && [[ -d node_modules ]] || npm install >/dev/null 2>&1 )
         ( cd "$E" && timeout 1200 claude -p "/verify-stories all --no-harden. Use playwright-cli. Run autonomously without questions." \
             --permission-mode bypassPermissions --max-turns 80 > "$WORK/e2e.log" 2>&1 )
         check "grep -q '^status: verified' '$E/agent-os/user-stories/US-001-add-a-task.md'" "US-001 not verified"
         check "grep -q '^status: verified' '$E/agent-os/user-stories/US-002-complete-a-task.md'" "US-002 not verified"
         check "grep -q '^status: failing' '$E/agent-os/user-stories/US-003-filter-active-tasks.md'" "US-003 should stay failing"
+        check "grep -q '^status: verified' '$E/agent-os/user-stories/US-004-reject-long-titles.md'" "US-004 (production only) not verified at production level"
+        check "grep -qi 'level: *production' '$E'/agent-os/user-stories/_runs/*/report.md" "report does not state the production level"
         check "ls '$E'/agent-os/user-stories/_runs/*/report.md >/dev/null 2>&1" "no run report written"
         check "ls '$E'/agent-os/user-stories/_runs/*/screenshots/US-003-AC1.png >/dev/null 2>&1" "no US-003 screenshot"
         if [[ $FAIL -gt 0 ]]; then

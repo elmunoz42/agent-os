@@ -27,6 +27,8 @@ Fork of v3 by elmunoz42. Backward compatible with v3 projects; migration path fo
 - `validate-skills.sh --strict`; tool-specific frontmatter keys (e.g. `user_invocable`) are warnings, since tools ignore keys they don't support.
 - Claude Code plugin manifest (`.claude-plugin/`).
 
+- Testing levels: `demo` (happy path, fast, moderate checks) or `production` (edge cases, full regression tests), set with `level:` in `agent-os/testing.yml` or `--level` on project-install.sh and migrate.sh. Agents ask once and save it when unset. Stories gain `sets:` and `(edge)` ACs; hardened tests are tagged `@demo` or `@prod`; `verified_level` records the depth of the last verification. Defined once in `write-user-stories/references/testing-levels.md` and used by write-user-stories, verify-stories, shape-spec, and prd-to-stories.
+
 ### Changed
 
 - `shape-spec` no longer stops outside plan mode; it links or writes user stories (Step 6), saves `stories.md`, and ends every plan with a verify stories task.

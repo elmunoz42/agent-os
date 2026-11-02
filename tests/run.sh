@@ -227,19 +227,59 @@ else
     echo "  (skipped: bm-skills not reachable; set PRD_SOURCE_DIR)"
 fi
 
+section "testing level: demo or production"
+P="$WORK/level"; mkdir -p "$P"
+( cd "$P" && "$INSTALL" --yes >/dev/null 2>&1 )
+assert "grep -qx 'level:' '$P/agent-os/testing.yml'" "fresh testing.yml should leave level empty so agents ask"
+assert_grep "Testing level: read" "$P/AGENTS.md"
+assert_file "$P/.agents/skills/write-user-stories/references/testing-levels.md"
+assert_grep "Resolve the testing level" "$P/.agents/skills/verify-stories/SKILL.md"
+( cd "$P" && "$INSTALL" --yes --commands-only --level demo >/dev/null 2>&1 )
+assert "grep -qx 'level: demo' '$P/agent-os/testing.yml'" "--level demo not saved"
+assert "[[ \$(grep -c '^level:' '$P/agent-os/testing.yml') -eq 1 ]]" "duplicate level lines"
+before=$(tree_sum "$P")
+( cd "$P" && "$INSTALL" --yes --commands-only --level demo >/dev/null 2>&1 )
+assert "[[ \"$before\" == \"\$(tree_sum '$P')\" ]]" "re-setting the same level changed files"
+( cd "$P" && "$INSTALL" --yes --commands-only --level staging >/dev/null 2>&1 ); rc=$?
+assert "[[ $rc -ne 0 ]]" "invalid level accepted"
+assert "grep -qx 'level: demo' '$P/agent-os/testing.yml'" "invalid level changed the file"
+P="$WORK/level-v3"; make_v3 "$P"
+( "$MIGRATE" --apply --level production "$P" >/dev/null 2>&1 )
+assert "grep -qx 'level: production' '$P/agent-os/testing.yml'" "migrate --level not saved"
+printf 'app:\n  start: npm start\n' > "$WORK/custom-testing.yml"
+P="$WORK/level-custom"; mkdir -p "$P/agent-os"; cp "$WORK/custom-testing.yml" "$P/agent-os/testing.yml"
+( cd "$P" && "$INSTALL" --yes --level production >/dev/null 2>&1 )
+assert_grep "start: npm start" "$P/agent-os/testing.yml"
+assert "grep -qx 'level: production' '$P/agent-os/testing.yml'" "level not appended to an existing testing.yml"
+
 section "sample app fixtures are valid"
 assert_file "$ROOT/examples/sample-app/agent-os/user-stories/index.yml"
 for s in "$ROOT"/examples/sample-app/agent-os/user-stories/US-*.md; do
     id=$(sed -n 's/^id: //p' "$s")
     assert "grep -q '^$id:' '$ROOT/examples/sample-app/agent-os/user-stories/index.yml'" "$id missing from index"
     assert "grep -rq '@$id' '$ROOT/examples/sample-app/tests/e2e/stories/'" "$id has no tagged e2e test"
+    assert "grep -qE '^sets: \\[' '$s'" "$id has no sets"
+    # a story whose ACs are all (edge) belongs to the production set only
+    if ! grep -E '^- AC[0-9]+' "$s" | grep -vq '(edge'; then
+        assert "grep -qx 'sets: \\[production\\]' '$s'" "$id has only edge ACs but is in the demo set"
+    fi
 done
+SA="$ROOT/examples/sample-app"
+assert "grep -q '^level: ' '$SA/agent-os/testing.yml'" "sample testing.yml has no level"
+assert "! grep -rE \"@prod'\" '$SA/tests/e2e/stories/' | grep -q '@demo'" "a test is tagged both @demo and @prod"
+assert "! grep -rh 'test(' '$SA/tests/e2e/stories/' | grep '@US' | grep -vqE '@(demo|prod)'" "a story test has no @demo or @prod tag"
 
 if [[ "${1:-}" == "--e2e" ]]; then
     section "sample app: story tests pass headless in Playwright"
     ( cd "$ROOT/examples/sample-app" && npm test --silent >/dev/null 2>&1 ); assert "[[ $? -eq 0 ]]" "unit tests failed"
     ( cd "$ROOT/examples/sample-app" && set -o pipefail && npx playwright test --grep @US --reporter=line 2>&1 | tail -5 ); rc=$?
     assert "[[ $rc -eq 0 ]]" "playwright story tests failed"
+    demo_n=$(cd "$SA" && npx playwright test --list --grep @demo 2>/dev/null | sed -n 's/^Total: \([0-9]*\) test.*/\1/p')
+    prod_n=$(cd "$SA" && npx playwright test --list --grep @prod 2>/dev/null | sed -n 's/^Total: \([0-9]*\) test.*/\1/p')
+    all_n=$(cd "$SA" && npx playwright test --list --grep @US 2>/dev/null | sed -n 's/^Total: \([0-9]*\) test.*/\1/p')
+    assert "[[ -n '$demo_n' && -n '$prod_n' && \$(( $demo_n + $prod_n )) -eq $all_n ]]" "demo ($demo_n) + prod ($prod_n) tests should equal all story tests ($all_n)"
+    ( cd "$SA" && set -o pipefail && npx playwright test --grep @demo --reporter=line 2>&1 | tail -1 ); rc=$?
+    assert "[[ $rc -eq 0 ]]" "demo set failed on its own"
 fi
 
 echo ""

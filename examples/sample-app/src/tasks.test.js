@@ -13,6 +13,10 @@ test('US-001 AC2: titles are trimmed and limited to 120 characters', () => {
   assert.equal(validateTitle('x'.repeat(121)).ok, false);
 });
 
+test('US-004 AC2: a title of exactly 120 characters is accepted', () => {
+  assert.equal(validateTitle('x'.repeat(120)).ok, true);
+});
+
 test('US-002 AC2: toggling twice returns a task to active', () => {
   const store = createStore();
   const { value } = store.add('Write docs');

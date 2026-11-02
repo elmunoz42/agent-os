@@ -1,6 +1,6 @@
 ---
 name: write-user-stories
-description: Write or update user stories with testable acceptance criteria in agent-os/user-stories/. Use when the user runs /write-user-stories, asks for user stories or acceptance criteria, or wants to backfill stories from existing code, specs, or a PRD.
+description: Write or update user stories with testable acceptance criteria in agent-os/user-stories/, at demo (happy path) or production (edge cases) depth. Use when the user runs /write-user-stories, asks for user stories or acceptance criteria, or wants to backfill stories from existing code, specs, or a PRD.
 ---
 
 # Write User Stories
@@ -13,6 +13,7 @@ Capture what users must be able to do as small, testable story files. Stories ar
 - **Propose, don't interrogate.** Draft stories and acceptance criteria, then let the user confirm or edit.
 - **Observable acceptance criteria only.** Every AC must be checkable by a person in the browser, or tagged `(unit)` when it is logic not visible in the UI.
 - **Small stories.** One user goal per story, 1 to 5 ACs. Split anything larger.
+- **Match the testing level.** Demo projects get happy path stories only. Production projects also get `(edge)` ACs and `[production]` stories. Levels are defined in `references/testing-levels.md`.
 - Follow `references/story-format.md` exactly. Use `references/user-story-template.md` as the file skeleton.
 
 ## Inputs (pick from what the user gave)
@@ -28,6 +29,7 @@ If nothing was given, ask what to write stories for, offering these four options
 
 ### Step 1: Load context
 
+- Resolve the testing level as described in `references/testing-levels.md` (request, then `level:` in `agent-os/testing.yml`, otherwise ask once and save it). Say which level you are writing for.
 - Read `agent-os/user-stories/index.yml` (create the folder and index from the template in `references/story-format.md` if missing).
 - Read `agent-os/product/mission.md` if it exists, for roles and vocabulary.
 - Note the highest existing ID. New IDs continue from it. Never renumber or reuse IDs.
@@ -49,6 +51,8 @@ Proposed stories for team invites:
 Write these? (yes / edit 2: ... / drop 1 / add: ...)
 ```
 
+At production level, also propose edge ACs from the checklist in `references/testing-levels.md`, tagged `(edge)`, and `[production]` stories for edge only goals. At demo level, propose none, and keep each story to the happy path the demo will show.
+
 Check for duplicates against the index. If an existing story covers the same goal, propose an update to it instead of a new story.
 
 ### Step 3: Write files
@@ -59,7 +63,8 @@ For each confirmed story:
 2. Set `status: draft` unless the user said the behavior already exists and works (then `ready`).
 3. Set `source:` to `manual`, `spec:<spec-folder>`, `prd-m<N>`, or `backfill`.
 4. Set `verify:` to `[browser]`, `[unit]`, or `[browser, unit]` based on the AC tags.
-5. Leave `tests:` empty. verify-stories fills it in.
+5. Set `sets:` to `[demo, production]` when the story has any happy path AC, or `[production]` when every AC is `(edge)`.
+6. Leave `tests:` empty. verify-stories fills it in.
 
 ### Step 4: Update the index
 
@@ -71,6 +76,7 @@ US-011:
   title: Invite a teammate by email
   status: draft
   tags: [team]
+  sets: [demo, production]
   source: spec:2026-11-02-1430-team-invites
 ```
 
@@ -85,5 +91,5 @@ US-011:
 |---|---|---|
 | draft | written, behavior may not exist yet | write-user-stories |
 | ready | behavior should exist, not yet verified | user or agent after building |
-| verified | ACs passed in browser and are covered by committed tests | verify-stories only |
+| verified | in-scope ACs passed in browser and are covered by committed tests; `verified_level` says demo or production | verify-stories only |
 | failing | last verification failed | verify-stories only |

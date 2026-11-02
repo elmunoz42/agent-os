@@ -1,4 +1,7 @@
 # Agent OS testing config for the sample app.
+
+# demo: happy path only. production: edge cases and full regression tests.
+level: production
 app:
   start: npm run dev
   base_url: http://localhost:4173
@@ -8,6 +11,7 @@ app:
 tests:
   unit: npm test
   e2e: npx playwright test --grep @US
+  e2e_demo: npx playwright test --grep @demo
   e2e_dir: tests/e2e/stories
 
 browser:

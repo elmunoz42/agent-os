@@ -5,10 +5,12 @@ status: verified
 priority: must
 source: manual
 tags: [tasks]
+sets: [demo, production]
 verify: [browser, unit]
 tests:
   e2e: [tests/e2e/stories/US-002.spec.ts]
   unit: [src/tasks.test.js]
+verified_level: production
 last_verified: 2026-11-01
 ---
 
@@ -17,7 +19,7 @@ As a person working through my list, I want to check off tasks, so that I can se
 ## Acceptance criteria
 
 - AC1: Given two active tasks, when I check one, then it shows as done and the count reads 1 task left.
-- AC2 (unit): Toggling a task twice returns it to active.
+- AC2 (edge, unit): Toggling a task twice returns it to active.
 
 ## Test data
 
