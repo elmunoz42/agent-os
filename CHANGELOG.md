@@ -29,6 +29,8 @@ Fork of v3 by elmunoz42. Backward compatible with v3 projects; migration path fo
 
 - Testing levels: `demo` (happy path, fast, moderate checks) or `production` (edge cases, full regression tests), set with `level:` in `agent-os/testing.yml` or `--level` on project-install.sh and migrate.sh. Agents ask once and save it when unset. Stories gain `sets:` and `(edge)` ACs; hardened tests are tagged `@demo` or `@prod`; `verified_level` records the depth of the last verification. Defined once in `write-user-stories/references/testing-levels.md` and used by write-user-stories, verify-stories, shape-spec, and prd-to-stories.
 
+- Story status report: `verify-stories/scripts/stories_report.py` (Python 3, standard library only) prints a summary and writes a static `agent-os/user-stories/report.html` with status, verified level, sets, AC counts, test files (missing flagged), and last verified date; `--set demo|production` filters. verify-stories refreshes it after each run; the installer gitignores it.
+
 ### Changed
 
 - `shape-spec` no longer stops outside plan mode; it links or writes user stories (Step 6), saves `stories.md`, and ends every plan with a verify stories task.

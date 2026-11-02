@@ -138,9 +138,11 @@ Level: production | App: http://localhost:3000 (npm run dev) | Browser tool: pla
 - Suspected area: src/invites/accept.ts (token status not checked)
 ```
 
+Finally, refresh the status page by running `scripts/stories_report.py` from this skill's folder with the project root as its argument, for example `python3 .agents/skills/verify-stories/scripts/stories_report.py .` (in Claude Code the same file is under `.claude/skills/`). It writes `agent-os/user-stories/report.html`. If Python 3 is not available, skip this step.
+
 ### Step 8: Tell the user
 
-Summarize in a few lines: the level used; counts of verified, failing, blocked; at demo level, how many edge ACs and `[production]` stories were skipped; new test files; the report path. For failures, ask whether to fix the code now. Stop the app if you started it.
+Summarize in a few lines, and mention `agent-os/user-stories/report.html`: the level used; counts of verified, failing, blocked; at demo level, how many edge ACs and `[production]` stories were skipped; new test files; the report path. For failures, ask whether to fix the code now. Stop the app if you started it.
 
 ## When called from other workflows
 

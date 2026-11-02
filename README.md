@@ -68,6 +68,15 @@ Every project has a testing level in `agent-os/testing.yml`:
 
 Stories carry `sets: [demo, production]`, or `[production]` for edge-only stories, and edge ACs are tagged `(edge)`. Agents read the level, and if it's empty they ask once and save the answer. Set it up front with `project-install.sh --level demo` (or `production`), or override one run with `/verify-stories --level production`. Moving a demo to production keeps every story and adds the edge cases. Run `npx playwright test --grep @demo` before a demo, and `--grep @US` for everything.
 
+### Story status report
+
+```bash
+python3 .agents/skills/verify-stories/scripts/stories_report.py            # in a project
+python3 .agents/skills/verify-stories/scripts/stories_report.py --set demo # demo set only
+```
+
+This prints a one-line summary plus any failing stories, and writes `agent-os/user-stories/report.html`: a static page showing each story's status, verification level, sets, criteria counts, test files (missing ones are flagged) and last verified date. It has no dependencies beyond Python 3, works in light and dark mode, and is gitignored. verify-stories refreshes it after every run.
+
 See `examples/sample-app/` for stories, a real verification report with screenshots, and story tagged Playwright tests, including a known failing story.
 
 ### Tests

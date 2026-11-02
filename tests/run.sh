@@ -252,6 +252,30 @@ P="$WORK/level-custom"; mkdir -p "$P/agent-os"; cp "$WORK/custom-testing.yml" "$
 assert_grep "start: npm start" "$P/agent-os/testing.yml"
 assert "grep -qx 'level: production' '$P/agent-os/testing.yml'" "level not appended to an existing testing.yml"
 
+section "story status report"
+R="$ROOT/skills/verify-stories/scripts/stories_report.py"
+if command -v python3 >/dev/null; then
+    out=$(python3 "$R" "$ROOT/examples/sample-app" --out "$WORK/report.html" 2>&1); rc=$?
+    assert "[[ $rc -eq 0 ]]" "report script failed: $out"
+    assert "echo \"\$out\" | grep -q 'User stories: 4 .*verified 3  failing 1'" "summary counts wrong: $out"
+    assert "echo \"\$out\" | grep -q 'US-003'" "failing story not listed in summary"
+    for id in US-001 US-002 US-003 US-004; do assert "grep -q '>$id<' '$WORK/report.html'" "$id missing from report"; done
+    assert "grep -q 'at production level' '$WORK/report.html'" "verified level not shown"
+    assert "! grep -qi '<script' '$WORK/report.html'" "report should be static (no script)"
+    out=$(python3 "$R" "$ROOT/examples/sample-app" --set demo --out "$WORK/demo.html" --quiet 2>&1)
+    assert "! grep -q '>US-004<' '$WORK/demo.html'" "--set demo should exclude production-only US-004"
+    P="$WORK/fresh"
+    out=$(python3 "$R" "$P" --quiet 2>&1); rc=$?
+    assert "[[ $rc -eq 0 ]] && grep -q 'No user stories yet' '$P/agent-os/user-stories/report.html'" "empty project report failed: $out"
+    assert_file "$P/.agents/skills/verify-stories/scripts/stories_report.py"
+    assert_grep "agent-os/user-stories/report.html" "$P/.gitignore"
+    mkdir -p "$WORK/bad/agent-os/user-stories"; printf -- '---\nid: US-009\ntitle: Broken tests\nstatus: verified\ntests:\n  e2e: [tests/e2e/stories/US-009.spec.ts]\n---\n- AC1: Given x, when y, then z.\n' > "$WORK/bad/agent-os/user-stories/US-009-broken.md"
+    out=$(python3 "$R" "$WORK/bad" 2>&1)
+    assert "echo \"\$out\" | grep -q 'US-009.*missing test files'" "missing test files not flagged: $out"
+else
+    echo "  (skipped: python3 not available)"
+fi
+
 section "sample app fixtures are valid"
 assert_file "$ROOT/examples/sample-app/agent-os/user-stories/index.yml"
 for s in "$ROOT"/examples/sample-app/agent-os/user-stories/US-*.md; do

@@ -6,7 +6,7 @@ This project uses [Agent OS](https://github.com/elmunoz42/agent-os) (fork 3.1). 
 - `agent-os/standards/`: coding standards. Use the inject-standards skill to pull relevant ones into context (index in `agent-os/standards/index.yml`).
 - `agent-os/product/`: mission, roadmap, tech stack.
 - `agent-os/specs/`: shaped specs, one folder per feature.
-- `agent-os/user-stories/`: long lived user stories with acceptance criteria (index in `agent-os/user-stories/index.yml`).
+- `agent-os/user-stories/`: long lived user stories with acceptance criteria (index in `agent-os/user-stories/index.yml`). Status page: `python3 .agents/skills/verify-stories/scripts/stories_report.py` writes `agent-os/user-stories/report.html`.
 - `agent-os/testing.yml`: testing level (demo or production), how to start the app, and how to run unit and e2e tests.
 
 Skills (in `.agents/skills/`, linked into `.claude/skills/`): plan-product, shape-spec, discover-standards, inject-standards, index-standards, write-user-stories, verify-stories, prd-to-stories, and bm-prd-creator if installed.

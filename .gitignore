@@ -36,3 +36,4 @@ node_modules/
 # Sample app test output
 examples/sample-app/test-results/
 examples/sample-app/playwright-report/
+examples/sample-app/agent-os/user-stories/report.html

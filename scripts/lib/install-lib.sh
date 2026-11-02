@@ -428,7 +428,7 @@ scaffold_stories() {
     _scaffold_file "$BASE_DIR/templates/testing.yml" "$PROJECT_DIR/agent-os/testing.yml"
     ensure_gitignore_lines "agent-os/.backups/" "agent-os/user-stories/_runs/*/screenshots/" \
         "agent-os/user-stories/_runs/*/*.json" "agent-os/user-stories/_runs/*/*.log" \
-        ".playwright/" ".playwright-cli/"
+        "agent-os/user-stories/report.html" ".playwright/" ".playwright-cli/"
     [[ "$DRY_RUN" == "true" ]] || print_success "agent-os/user-stories/ and agent-os/testing.yml ready (existing files kept)"
 }
 
