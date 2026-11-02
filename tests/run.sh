@@ -66,7 +66,7 @@ make_v2() {
 # -----------------------------------------------------------------------------
 
 section "skill frontmatter is valid for Claude Code, Codex, Cursor"
-assert "'$ROOT/scripts/validate-skills.sh' >/dev/null" "validate-skills.sh failed"
+assert "'$ROOT/scripts/validate-skills.sh' --strict >/dev/null" "validate-skills.sh --strict failed"
 
 section "shell syntax"
 for f in "$ROOT"/scripts/*.sh "$ROOT"/scripts/lib/*.sh; do assert "bash -n '$f'" "syntax error in $f"; done
@@ -88,7 +88,7 @@ assert_file "$P/agent-os/user-stories/index.yml"
 assert_file "$P/agent-os/testing.yml"
 assert_grep "agent-os/.backups/" "$P/.gitignore"
 assert "[[ \"\$(cat '$P/agent-os/.version')\" == '3.1-fork' ]]" "version marker"
-assert "'$ROOT/scripts/validate-skills.sh' '$P/.agents/skills' >/dev/null" "installed skills invalid"
+assert "'$ROOT/scripts/validate-skills.sh' --strict '$P/.agents/skills' >/dev/null" "installed skills invalid"
 
 section "install is idempotent"
 ( cd "$P" && "$INSTALL" --yes --commands-only >/dev/null 2>&1 )

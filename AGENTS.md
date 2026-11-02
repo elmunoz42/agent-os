@@ -13,7 +13,7 @@ Fork of [buildermethods/agent-os](https://github.com/buildermethods/agent-os) v3
 - `scripts/project-install.sh`: installer (upstream flags preserved). `scripts/migrate.sh`: upgrades, batch scan, rollback. `scripts/lib/install-lib.sh`: shared logic.
 - `templates/`: files the installer writes into projects (AGENTS.md block, testing.yml, story template, stories index).
 - `examples/sample-app/`: tiny app with stories, a real verification run, and story tagged Playwright tests.
-- `tests/run.sh`: test suite. `tests/run.sh --e2e` also runs the sample app's Playwright tests.
+- `tests/run.sh`: test suite. `tests/run.sh --e2e` also runs the sample app's Playwright tests. `tests/compat.sh` checks Claude Code, Codex, and Cursor with their own tooling.
 
 ## Rules
 

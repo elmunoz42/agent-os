@@ -22,6 +22,8 @@ Fork of v3 by elmunoz42. Backward compatible with v3 projects; migration path fo
 - `scripts/migrate.sh`: version detection (v2, v3, marker), dry run by default, `--apply`, `--scan` for many repos, `--branch` commits per repo, `--rollback` from manifests. Protected folders are checksummed.
 - Installer flags: `--tools`, `--copy`, `--with-prd`, `--prd-ref`, `--prd-source`, `--no-stories`, `--keep-legacy-commands`, `--dry-run`, `--yes`. Every write is tracked for rollback and skipped when unchanged.
 - `examples/sample-app/` with three stories, a real verification run, and Playwright story tests; `tests/run.sh` suite; CI on Linux and macOS.
+- `tests/compat.sh`: verifies skills load in Claude Code (claude CLI), Codex (`codex debug prompt-input`), and Cursor (rules and discovery folders from `@cursor/sdk`), with an optional Claude Code end to end `/verify-stories` run.
+- `validate-skills.sh --strict`; tool-specific frontmatter keys (e.g. `user_invocable`) are warnings, since tools ignore keys they don't support.
 - Claude Code plugin manifest (`.claude-plugin/`).
 
 ### Changed

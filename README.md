@@ -60,9 +60,17 @@ See `examples/sample-app/` for stories, a real verification report with screensh
 ### Tests
 
 ```bash
-tests/run.sh          # installer, migration, rollback, batch, skill validation
-tests/run.sh --e2e    # plus the sample app's Playwright story tests
+tests/run.sh               # installer, migration, rollback, batch, skill validation
+tests/run.sh --e2e         # plus the sample app's Playwright story tests
+tests/compat.sh            # checks against the real tools (see below)
+tests/compat.sh --claude-e2e   # plus Claude Code running /verify-stories on the sample app
 ```
+
+`tests/compat.sh` checks each tool with its own code:
+
+- Claude Code: the claude CLI lists all installed skills and loads AGENTS.md through the CLAUDE.md import.
+- Codex: `codex debug prompt-input` (no login needed) shows every skill discovered from `.agents/skills` and the AGENTS.md block in the model input.
+- Cursor: the official `@cursor/sdk` package is checked for the skill folders it scans, its skill validation rules (which `validate-skills.sh` enforces), and AGENTS.md support. Running a full Cursor agent needs a Cursor API key, so run `/verify-stories` once in Cursor to confirm end to end.
 
 ---
 

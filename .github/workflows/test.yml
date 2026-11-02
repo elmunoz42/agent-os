@@ -19,6 +19,16 @@ jobs:
       - name: Install, migrate, rollback, and skill tests
         run: tests/run.sh
 
+  tool-compat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Codex and Cursor skill compatibility (Claude Code needs a login, run locally)
+        run: tests/compat.sh --skip-claude
+
   stories-e2e:
     runs-on: ubuntu-latest
     defaults:
