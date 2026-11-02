@@ -43,7 +43,7 @@ See [UPGRADING.md](UPGRADING.md) for details.
 | Invoke | `/verify-stories US-012` | `$verify-stories US-012` or `/skills` | `/verify-stories US-012` |
 | Plan mode for /shape-spec | Plan mode | Plan mode if available, else read only approvals | Plan mode |
 
-Cursor reads both skill folders. If it lists each skill twice, install with `--tools codex,cursor` on machines where you only use Codex and Cursor, or keep both (the entries are the same files).
+Cursor reads both skill folders and resolves the symlinks, so with the default install each skill appears once (verified with Cursor's own runtime, see Tests). With `--copy`, the copies are separate files and Cursor lists each skill twice; prefer symlinks (on Windows, enable Developer Mode and `git config core.symlinks true`), or use `--tools codex,cursor` where you don't need Claude Code.
 
 Claude Code users can also install the skills globally as a plugin: `/plugin marketplace add elmunoz42/agent-os`, then `/plugin install agent-os`. You still run `project-install.sh` once per project to scaffold `agent-os/`.
 
@@ -66,11 +66,11 @@ tests/compat.sh            # checks against the real tools (see below)
 tests/compat.sh --claude-e2e   # plus Claude Code running /verify-stories on the sample app
 ```
 
-`tests/compat.sh` checks each tool with its own code:
+`tests/compat.sh` checks each tool with its own code (CI runs the Codex and Cursor checks on every push):
 
 - Claude Code: the claude CLI lists all installed skills and loads AGENTS.md through the CLAUDE.md import.
 - Codex: `codex debug prompt-input` (no login needed) shows every skill discovered from `.agents/skills` and the AGENTS.md block in the model input.
-- Cursor: the official `@cursor/sdk` package is checked for the skill folders it scans, its skill validation rules (which `validate-skills.sh` enforces), and AGENTS.md support. Running a full Cursor agent needs a Cursor API key, so run `/verify-stories` once in Cursor to confirm end to end.
+- Cursor: runs Cursor's own local runtime from the official `@cursor/sdk` package (no API key needed) on an installed project and checks that it loads AGENTS.md and CLAUDE.md as project rules and every skill exactly once, with no parse errors or warnings, for both the default install and `--tools codex,cursor`.
 
 ---
 

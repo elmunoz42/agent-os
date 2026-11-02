@@ -256,6 +256,9 @@ _link_claude_skill() {
 # Install all base skills for the enabled tools
 install_skills() {
     print_status "Installing skills (tools: $TOOLS)..."
+    if [[ "$LINK_MODE" == "copy" ]] && tool_enabled claude && tool_enabled cursor; then
+        print_warning "--copy with Claude Code and Cursor: Cursor reads both .agents/skills and .claude/skills, so real copies appear twice in Cursor. Symlinks (the default) avoid this; on Windows enable Developer Mode and git core.symlinks, or install with --tools codex,cursor on Cursor-only machines."
+    fi
     local count=0 line name src kind
     while IFS= read -r line; do
         [[ -z "$line" ]] && continue

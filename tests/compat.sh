@@ -95,7 +95,7 @@ PY
 fi
 
 # -----------------------------------------------------------------------------
-section "Cursor (official @cursor/sdk): discovery folders, validation rules, AGENTS.md"
+section "Cursor runtime (official @cursor/sdk) loads AGENTS.md and every skill"
 if $SKIP_CURSOR; then skip "--skip-cursor"
 else
     C="$WORK/cursor"; mkdir -p "$C"
@@ -104,23 +104,82 @@ else
     else
         SDK="$C/node_modules/@cursor/sdk"
         echo "  @cursor/sdk $(node -p "require('$SDK/package.json').version")"
-        src=$(cat "$SDK"/dist/cjs/*.js)
-        # Skill discovery folders used by Cursor
-        check "echo \"\$src\" | grep -q '\[\".agents\",\"skills\"\]'" "Cursor no longer scans .agents/skills"
-        check "echo \"\$src\" | grep -q '\[\".claude\",\"skills\"\]'" "Cursor no longer scans .claude/skills"
-        # Cursor's skill validation rules, which validate-skills.sh enforces as errors
-        check "echo \"\$src\" | grep -qF '/^[a-z0-9]+(?:-[a-z0-9]+)*\$/'" "Cursor skill name pattern changed"
-        check "echo \"\$src\" | grep -q 'the limit is 64'" "Cursor name length limit changed"
-        check "echo \"\$src\" | grep -q \"doesn't match the folder name\"" "Cursor name/folder rule changed"
-        check "echo \"\$src\" | grep -q 'Description is required'" "Cursor description rule changed"
-        check "echo \"\$src\" | grep -q 'g(1024)'" "Cursor description length limit changed"
-        # Cursor reads AGENTS.md as project rules
-        check "echo \"\$src\" | grep -q '\"AGENTS.md\"===e'" "Cursor no longer reads AGENTS.md"
-        # Our installed skills pass those rules (strict for ours; PRD skill may warn on tool keys)
-        check "'$ROOT/scripts/validate-skills.sh' '$P/.agents/skills' >/dev/null" "installed skills fail Cursor's rules"
-        for s in $SKILLS; do
-            check "[[ -f '$P/.agents/skills/$s/SKILL.md' && -f '$P/.claude/skills/$s/SKILL.md' ]]" "$s missing from a folder Cursor scans"
-        done
+        # Prepare a copy of the SDK: export its module loader and observe the two
+        # "load completed" points. Discovery and parsing code is left untouched.
+        PSDK="$C/sdk-probe"; cp -R "$SDK" "$PSDK"; ln -s "$C/node_modules" "$PSDK/node_modules"
+        chunks=$(python3 - "$PSDK/dist/cjs" <<'PY2'
+import re, sys, os, glob
+d = sys.argv[1]
+idx = open(os.path.join(d, 'index.js')).read()
+m = re.search(r'Promise\.all\(\[((?:\w\.e\(\d+\),?)+)\]\)\.then\((\w)\.bind\(\2,"\./src/agent/local-executor\.ts"\)\)', idx)
+if not m: sys.exit("no local-executor chunk group found")
+loader = m.group(2); ids = re.findall(r'\.e\((\d+)\)', m.group(1))
+e = re.search(r'module\.exports=(\w+)\}\)\(\);\s*$', idx)
+if not e: sys.exit("no module.exports tail found")
+idx = idx[:e.start()] + 'module.exports=%s;module.exports.__aosLoader=%s})();' % (e.group(1), loader)
+open(os.path.join(d, 'index.js'), 'w').write(idx)
+hooks = {
+  '"AgentSkillsCursorRulesService load completed"': '__aosSkills',
+  '"LocalCursorRulesService load completed"': '__aosRules',
+}
+done = set()
+for f in glob.glob(os.path.join(d, '*.js')):
+    s = open(f).read(); changed = False
+    for marker, var in hooks.items():
+        pat = re.compile(r'\.then\(\((\w)=>\{try\{(\w+)\.info\((\w),' + re.escape(marker))
+        mm = pat.search(s)
+        if mm:
+            s = s[:mm.start()] + '.then((%s=>{try{(globalThis.%s=globalThis.%s||[]).push(%s);%s.info(%s,%s' % (mm.group(1), var, var, mm.group(1), mm.group(2), mm.group(3), marker) + s[mm.end():]
+            changed = True; done.add(var)
+    if changed: open(f, 'w').write(s)
+if done != set(hooks.values()): sys.exit("observer points not found: %s" % (set(hooks.values()) - done))
+print(','.join(ids))
+PY2
+)
+        if [[ $? -ne 0 || -z "$chunks" ]]; then
+            fail "could not prepare @cursor/sdk for probing ($chunks); the SDK layout changed, update tests/compat.sh"
+        else
+            probe() { AOS_CURSOR_CHUNKS="$chunks" node "$ROOT/tests/cursor-probe.cjs" "$PSDK" "$1" 2>/dev/null | sed -n 's/^AOS_JSON://p'; }
+            # Default install (symlinks), --tools codex,cursor, and --copy
+            P2="$WORK/project-codex-cursor"; mkdir -p "$P2"
+            ( cd "$P2" && "$ROOT/scripts/project-install.sh" --yes --tools codex,cursor "${PRD_ARGS[@]}" >/dev/null 2>&1 )
+            for spec in "$P|.claude/skills|CLAUDE.md AGENTS.md" "$P2|.agents/skills|AGENTS.md"; do
+                IFS='|' read -r proj dir want_rules <<< "$spec"
+                label=$(basename "$proj")
+                json=$(probe "$proj")
+                echo "$json" > "$WORK/cursor-$label.json"
+                problems=$(python3 - "$WORK/cursor-$label.json" "$dir" "$want_rules" "$SKILLS" <<'PY3'
+import json, sys
+path, want_dir, want_rules, skills = sys.argv[1], sys.argv[2], sys.argv[3].split(), sys.argv[4].split()
+try:
+    d = json.load(open(path))
+except Exception as e:
+    print("probe produced no JSON (%s)" % e); sys.exit()
+if "error" in d:
+    print("probe error: " + d["error"]); sys.exit()
+loaded = d["projectSkills"]
+names = [s["path"].split("/")[-2] for s in loaded]
+for s in skills:
+    if s not in names: print("Cursor did not load skill " + s)
+if len(names) != len(set(names)): print("Cursor loaded duplicate skills: %d entries, %d unique" % (len(names), len(set(names))))
+for s in loaded:
+    if not s["path"].startswith(want_dir + "/"): print("skill loaded from unexpected folder: " + s["path"])
+    if s["parseError"]: print("Cursor parse error in %s: %s" % (s["path"], s["parseError"]))
+    for w in s["warnings"]: print("Cursor warning in %s: %s" % (s["path"], w))
+    if s["type"] != "agentFetched": print("%s loaded as %s, expected agentFetched" % (s["path"], s["type"]))
+rules = {r["path"]: r for r in d["projectRules"]}
+for r in want_rules:
+    if r not in rules or not rules[r]["hasContent"] or rules[r]["type"] != "global":
+        print("Cursor did not load %s as a project rule" % r)
+PY3
+)
+                if [[ -z "$problems" ]]; then
+                    ok; echo "  ✓ $label: $(echo "$SKILLS" | wc -w | tr -d ' ') skills from $dir, rules: $want_rules"
+                else
+                    while IFS= read -r line; do fail "$label: $line"; done <<< "$problems"
+                fi
+            done
+        fi
     fi
 fi
 
@@ -131,6 +190,8 @@ if $CLAUDE_E2E; then
         skip "needs claude and playwright-cli on PATH"
     else
         E="$WORK/e2e"; cp -R "$ROOT/examples/sample-app" "$E"; rm -rf "$E/agent-os/user-stories/_runs"
+        # Own port, so a concurrent sample app run (tests/run.sh --e2e) cannot interfere
+        sed -i.bak -e 's#start: npm run dev#start: PORT=4199 npm run dev#' -e 's#localhost:4173#localhost:4199#' "$E/agent-os/testing.yml" && rm -f "$E/agent-os/testing.yml.bak"
         sed -i.bak 's/status: verified/status: ready/' "$E"/agent-os/user-stories/*.md "$E"/agent-os/user-stories/index.yml && rm -f "$E"/agent-os/user-stories/*.bak "$E"/agent-os/user-stories/index.yml.bak
         ( cd "$E" && git init -q && "$ROOT/scripts/project-install.sh" --yes >/dev/null 2>&1 && [[ -d node_modules ]] || npm install >/dev/null 2>&1 )
         ( cd "$E" && timeout 1200 claude -p "/verify-stories all --no-harden. Use playwright-cli. Run autonomously without questions." \
@@ -140,6 +201,10 @@ if $CLAUDE_E2E; then
         check "grep -q '^status: failing' '$E/agent-os/user-stories/US-003-filter-active-tasks.md'" "US-003 should stay failing"
         check "ls '$E'/agent-os/user-stories/_runs/*/report.md >/dev/null 2>&1" "no run report written"
         check "ls '$E'/agent-os/user-stories/_runs/*/screenshots/US-003-AC1.png >/dev/null 2>&1" "no US-003 screenshot"
+        if [[ $FAIL -gt 0 ]]; then
+            echo "  --- last lines of the Claude Code run ---"; tail -25 "$WORK/e2e.log" | sed 's/^/  | /'
+            echo "  --- story statuses ---"; grep -H '^status' "$E"/agent-os/user-stories/US-*.md | sed 's/^/  | /'
+        fi
     fi
 fi
 
