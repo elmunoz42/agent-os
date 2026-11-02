@@ -32,3 +32,7 @@ node_modules/
 # Temporary files
 *.tmp
 *.temp
+
+# Sample app test output
+examples/sample-app/test-results/
+examples/sample-app/playwright-report/

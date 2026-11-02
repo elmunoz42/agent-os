@@ -1,10 +1,15 @@
+---
+name: plan-product
+description: Create or update product docs (mission, roadmap, tech stack) in agent-os/product/ through a short interview. Use when the user runs /plan-product or wants to establish product context for a codebase.
+---
+
 # Plan Product
 
 Establish foundational product documentation through an interactive conversation. Creates mission, roadmap, and tech stack files in `agent-os/product/`.
 
 ## Important Guidelines
 
-- **Always use AskUserQuestion tool** when asking the user anything
+- **Ask with your structured question tool** when asking the user anything (AskUserQuestion in Claude Code; the ask or question tool in Cursor and Codex). If none is available, ask in chat and wait for the answer. In this file, AskUserQuestion means whichever applies.
 - **Keep it lightweight** — gather enough to create useful docs without over-documenting
 - **One question at a time** — don't overwhelm with multiple questions
 
@@ -36,7 +41,22 @@ Would you like to:
 If option 2, ask which files to update and only gather info for those.
 If option 3, stop here.
 
-**If no files exist**, proceed to Step 2.
+**If no files exist**, proceed to Step 1b.
+
+### Step 1b: Offer the PRD Creator (new apps)
+
+If the `bm-prd-creator` skill is installed (in `.agents/skills/` or `.claude/skills/`) and this is a new app or a large new product area, use AskUserQuestion:
+
+```
+For a new app, the PRD Creator runs a deeper interview and produces a PRD plus build milestones.
+
+1. Use PRD Creator, then save long lived docs here (recommended for new apps)
+2. Continue with the lightweight product docs only
+```
+
+If option 1: run the bm-prd-creator skill. When it finishes, continue with Steps 2-5 below, pre-filling every answer from `_build_plan/prd.md` (or prd.html) and asking only to confirm. `_build_plan/` is temporary, so `agent-os/product/` must hold the durable mission, roadmap, and tech stack. Then suggest running prd-to-stories.
+
+If the skill is not installed, skip this step silently.
 
 ### Step 2: Gather Product Vision (for mission.md)
 

@@ -1,0 +1,24 @@
+{
+  "name": "agent-os-fork",
+  "owner": {
+    "name": "elmunoz42",
+    "url": "https://github.com/elmunoz42"
+  },
+  "metadata": {
+    "description": "Agent OS fork with user stories and Playwright verified story tests.",
+    "version": "3.1.0"
+  },
+  "plugins": [
+    {
+      "name": "agent-os",
+      "displayName": "Agent OS (fork 3.1)",
+      "description": "Standards, spec shaping, user stories, and browser verified story tests.",
+      "source": "./",
+      "homepage": "https://github.com/elmunoz42/agent-os",
+      "repository": "https://github.com/elmunoz42/agent-os",
+      "license": "MIT",
+      "category": "productivity",
+      "tags": ["standards", "specs", "user-stories", "playwright", "testing"]
+    }
+  ]
+}

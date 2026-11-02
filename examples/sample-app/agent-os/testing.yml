@@ -1,0 +1,16 @@
+# Agent OS testing config for the sample app.
+app:
+  start: npm run dev
+  base_url: http://localhost:4173
+  health: /
+  reuse_running: true
+
+tests:
+  unit: npm test
+  e2e: npx playwright test --grep @US
+  e2e_dir: tests/e2e/stories
+
+browser:
+  order: [playwright-cli, playwright-mcp, claude-browser, chrome-devtools-mcp]
+  headed: false
+  artifacts: agent-os/user-stories/_runs

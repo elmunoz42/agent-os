@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tasks</title>
+  <style>
+    body { font: 16px/1.5 system-ui, sans-serif; max-width: 32rem; margin: 3rem auto; padding: 0 1rem; color: #1c1c1c; }
+    form { display: flex; gap: .5rem; }
+    input[type=text] { flex: 1; padding: .5rem; }
+    ul { list-style: none; padding: 0; }
+    li { display: flex; gap: .5rem; align-items: center; padding: .4rem 0; border-bottom: 1px solid #eee; }
+    li.done span { text-decoration: line-through; color: #888; }
+    .error { color: #b00020; min-height: 1.5em; }
+    nav { display: flex; gap: .5rem; margin-top: 1rem; }
+    nav button[aria-pressed=true] { font-weight: 700; }
+  </style>
+</head>
+<body>
+  <h1>Tasks</h1>
+  <form id="add">
+    <label for="title" hidden>New task</label>
+    <input id="title" type="text" placeholder="What needs doing?" aria-label="New task">
+    <button type="submit">Add</button>
+  </form>
+  <p class="error" role="alert" id="error"></p>
+  <ul id="list" aria-label="Tasks"></ul>
+  <p id="count" aria-live="polite"></p>
+  <nav aria-label="Filter">
+    <button type="button" data-filter="all" aria-pressed="true">All</button>
+    <button type="button" data-filter="active" aria-pressed="false">Active</button>
+  </nav>
+  <script>
+    let tasks = [];
+    let filter = 'all';
+    const $ = (id) => document.getElementById(id);
+
+    async function load() {
+      tasks = await (await fetch('/api/tasks')).json();
+      render();
+    }
+
+    function render() {
+      // Known bug (US-003): the Active filter is ignored, so done tasks still show.
+      const visible = tasks;
+      $('list').innerHTML = '';
+      for (const t of visible) {
+        const li = document.createElement('li');
+        li.className = t.done ? 'done' : '';
+        const box = document.createElement('input');
+        box.type = 'checkbox';
+        box.checked = t.done;
+        box.setAttribute('aria-label', `Complete ${t.title}`);
+        box.addEventListener('change', async () => {
+          await fetch(`/api/tasks/${t.id}/toggle`, { method: 'POST' });
+          load();
+        });
+        const span = document.createElement('span');
+        span.textContent = t.title;
+        li.append(box, span);
+        $('list').append(li);
+      }
+      const left = tasks.filter((t) => !t.done).length;
+      $('count').textContent = `${left} ${left === 1 ? 'task' : 'tasks'} left`;
+    }
+
+    $('add').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: $('title').value }),
+      });
+      if (!res.ok) {
+        $('error').textContent = (await res.json()).error;
+        return;
+      }
+      $('error').textContent = '';
+      $('title').value = '';
+      load();
+    });
+
+    document.querySelectorAll('nav button').forEach((b) =>
+      b.addEventListener('click', () => {
+        filter = b.dataset.filter;
+        document.querySelectorAll('nav button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+        render();
+      })
+    );
+
+    load();
+  </script>
+</body>
+</html>

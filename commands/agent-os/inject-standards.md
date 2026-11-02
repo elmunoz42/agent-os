@@ -1,6 +1,13 @@
+---
+name: inject-standards
+description: Inject relevant Agent OS standards from agent-os/standards/ into the current conversation, a plan, or a skill being written. Use when the user runs /inject-standards, or before implementing or planning work that should follow project standards.
+---
+
 # Inject Standards
 
 Inject relevant standards into the current context, formatted appropriately for the situation.
+
+> In this file, AskUserQuestion means your structured question tool (AskUserQuestion in Claude Code; the ask or question tool in Cursor and Codex). If none is available, ask in chat and wait for the answer.
 
 ## Usage Modes
 
@@ -28,18 +35,18 @@ Directly injects specified standards without suggestions.
 
 ### Step 1: Detect Context Scenario
 
-Before injecting standards, determine which scenario we're in. Read the current conversation and check if we're in plan mode.
+Before injecting standards, determine which scenario we're in. Read the current conversation and check if we're in plan mode (Claude Code plan mode, Cursor plan mode, or Codex plan or read-only mode).
 
 **Three scenarios:**
 
 1. **Conversation** — Regular chat, implementing code, answering questions
-2. **Creating a Skill** — Building a `.claude/skills/` file
+2. **Creating a Skill** — Building a skill in `.agents/skills/` or `.claude/skills/`
 3. **Shaping/Planning** — In plan mode, building a spec, running `/shape-spec`
 
 **Detection logic:**
 
 - If currently in plan mode OR conversation clearly mentions "spec", "plan", "shape" → **Shaping/Planning**
-- If conversation clearly mentions creating a skill, editing `.claude/skills/`, or building a reusable procedure → **Creating a Skill**
+- If conversation clearly mentions creating a skill, editing `.agents/skills/` or `.claude/skills/`, or building a reusable procedure → **Creating a Skill**
 - Otherwise → **Ask to confirm** (do not assume)
 
 **If neither skill nor plan is clearly detected**, use AskUserQuestion to confirm:
@@ -229,7 +236,7 @@ These standards cover:
 
 ### Step 6: Surface Related Skills (Conversation scenario only)
 
-When in conversation scenario, check if `.claude/skills/` exists and contains related skills:
+When in conversation scenario, check `.agents/skills/` and `.claude/skills/` for related skills:
 
 ```
 Related Skills you might want to use:

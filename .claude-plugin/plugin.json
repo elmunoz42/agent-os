@@ -1,0 +1,15 @@
+{
+  "name": "agent-os",
+  "displayName": "Agent OS (fork 3.1)",
+  "description": "Agent OS standards, spec shaping, user stories, and browser verified story tests. Fork of buildermethods/agent-os.",
+  "version": "3.1.0",
+  "author": {
+    "name": "elmunoz42",
+    "url": "https://github.com/elmunoz42"
+  },
+  "homepage": "https://github.com/elmunoz42/agent-os",
+  "repository": "https://github.com/elmunoz42/agent-os",
+  "license": "MIT",
+  "commands": ["./commands/agent-os"],
+  "skills": ["./skills"]
+}

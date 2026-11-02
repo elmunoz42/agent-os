@@ -1,10 +1,15 @@
+---
+name: discover-standards
+description: Extract tribal knowledge from the codebase into concise Agent OS standards in agent-os/standards/. Use when the user runs /discover-standards or asks to document coding conventions or patterns as standards.
+---
+
 # Discover Standards
 
 Extract tribal knowledge from your codebase into concise, documented standards.
 
 ## Important Guidelines
 
-- **Always use AskUserQuestion tool** when asking the user anything
+- **Ask with your structured question tool** when asking the user anything (AskUserQuestion in Claude Code; the ask or question tool in Cursor and Codex). If none is available, ask in chat and wait for the answer. In this file, AskUserQuestion means whichever applies.
 - **Write concise standards** — Use minimal words. Standards must be scannable by AI agents without bloating context windows.
 - **Offer suggestions** — Present options the user can confirm, choose between, or correct. Don't make them think harder than necessary.
 

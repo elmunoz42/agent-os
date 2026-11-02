@@ -1,6 +1,13 @@
+---
+name: index-standards
+description: Rebuild agent-os/standards/index.yml so standards can be matched by description. Use when the user runs /index-standards, or after standards files were added, renamed, or deleted.
+---
+
 # Index Standards
 
 Rebuild and maintain the standards index file (`index.yml`).
+
+> In this file, AskUserQuestion means your structured question tool (AskUserQuestion in Claude Code; the ask or question tool in Cursor and Codex). If none is available, ask in chat and wait for the answer.
 
 ## Purpose
 

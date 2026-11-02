@@ -1,0 +1,10 @@
+# Agent OS User Stories Index
+# Maintained by the write-user-stories and verify-stories skills.
+# One entry per story file in this folder. Keep entries alphabetized by id.
+#
+# US-001:
+#   file: US-001-sign-up-with-email.md
+#   title: Sign up with email
+#   status: draft        # draft | ready | verified | failing
+#   tags: [auth]
+#   source: manual       # manual | prd-m1 | spec:<folder>

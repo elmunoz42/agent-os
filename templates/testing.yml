@@ -1,0 +1,20 @@
+# Agent OS testing config. Read by the verify-stories skill.
+# Adjust commands to your stack. All keys are optional; the agent will
+# detect sensible defaults and offer to fill this file in.
+
+app:
+  start: npm run dev               # command that starts the app locally
+  base_url: http://localhost:3000
+  health: /                         # path that returns 200 when ready
+  reuse_running: true               # use an already running app if healthy
+
+tests:
+  unit: npm test
+  e2e: npx playwright test --grep @US
+  e2e_dir: tests/e2e/stories        # where hardened story tests live
+
+browser:
+  # First available tool wins. playwright-cli is the default for agent checks.
+  order: [playwright-cli, playwright-mcp, claude-browser, chrome-devtools-mcp]
+  headed: false
+  artifacts: agent-os/user-stories/_runs

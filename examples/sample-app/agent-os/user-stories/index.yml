@@ -1,0 +1,22 @@
+# Agent OS User Stories Index
+
+US-001:
+  file: US-001-add-a-task.md
+  title: Add a task
+  status: verified
+  tags: [tasks]
+  source: manual
+
+US-002:
+  file: US-002-complete-a-task.md
+  title: Complete a task
+  status: verified
+  tags: [tasks]
+  source: manual
+
+US-003:
+  file: US-003-filter-active-tasks.md
+  title: Show only active tasks
+  status: failing
+  tags: [tasks, filters]
+  source: manual

@@ -8,6 +8,33 @@ https://buildermethods.com/agent-os
 - Fixed silent install failures caused by `((var++))` under `set -e` in `project-install.sh`, `sync-to-profile.sh`, and `common-functions.sh` (#328).
 - Replaced GNU-only `tac` in `project-install.sh` with a POSIX `awk` invocation so installs work on macOS without `coreutils` (#327).
 
+## [3.1-fork] - 2026-11-01
+
+Fork of v3 by elmunoz42. Backward compatible with v3 projects; migration path for v2.
+
+### Added
+
+- Agent Skills packaging for Claude Code, Codex, and Cursor: every command has `name` and `description` frontmatter and installs to `.agents/skills/`, linked into `.claude/skills/`. `scripts/validate-skills.sh` lints frontmatter.
+- Managed agent-os block in `AGENTS.md` and an `@AGENTS.md` import in `CLAUDE.md`.
+- `agent-os/user-stories/` with a story format, index, and the `write-user-stories` skill.
+- `verify-stories` skill: browser acceptance pass (playwright-cli first), unit pass, hardening into `@US-###` tagged Playwright tests, run reports and failure dossiers. `agent-os/testing.yml` config.
+- `prd-to-stories` skill and `--with-prd`: installs the Builder Methods PRD Creator (bm-skills, MIT) as a dependency and turns PRD milestones into stories with milestone verification.
+- `scripts/migrate.sh`: version detection (v2, v3, marker), dry run by default, `--apply`, `--scan` for many repos, `--branch` commits per repo, `--rollback` from manifests. Protected folders are checksummed.
+- Installer flags: `--tools`, `--copy`, `--with-prd`, `--prd-ref`, `--prd-source`, `--no-stories`, `--keep-legacy-commands`, `--dry-run`, `--yes`. Every write is tracked for rollback and skipped when unchanged.
+- `examples/sample-app/` with three stories, a real verification run, and Playwright story tests; `tests/run.sh` suite; CI on Linux and macOS.
+- Claude Code plugin manifest (`.claude-plugin/`).
+
+### Changed
+
+- `shape-spec` no longer stops outside plan mode; it links or writes user stories (Step 6), saves `stories.md`, and ends every plan with a verify stories task.
+- `plan-product` offers the PRD Creator for new apps when installed.
+- Question prompts work in all three tools (structured question tool when available, chat otherwise).
+- `inject-standards` recognizes skills in `.agents/skills/` and `.claude/skills/`.
+
+### Unchanged
+
+- `agent-os/standards/`, `agent-os/product/`, `agent-os/specs/` layouts and all command names.
+
 ## [3.0] - 2026-01-20
 
 Agent OS v3 is a major release that refocuses the framework on what it does best—establishing and injecting standards—while deferring to modern AI tools for the parts they now handle better.

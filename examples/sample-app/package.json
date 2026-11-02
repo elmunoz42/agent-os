@@ -1,0 +1,16 @@
+{
+  "name": "agent-os-sample-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Tiny todo app used to demo and test Agent OS user stories with Playwright",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "test": "node --test src/*.test.js",
+    "test:e2e": "playwright test --grep @US"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0"
+  }
+}

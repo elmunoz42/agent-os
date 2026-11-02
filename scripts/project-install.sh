@@ -14,6 +14,7 @@ PROJECT_DIR="$(pwd)"
 
 # Source common functions
 source "$SCRIPT_DIR/common-functions.sh"
+source "$SCRIPT_DIR/lib/install-lib.sh"
 
 # -----------------------------------------------------------------------------
 # Default Values
@@ -22,6 +23,15 @@ source "$SCRIPT_DIR/common-functions.sh"
 VERBOSE="false"
 PROFILE=""
 COMMANDS_ONLY="false"
+ASSUME_YES="false"
+DRY_RUN="false"
+TOOLS="claude,codex,cursor"
+LINK_MODE="symlink"
+WITH_PRD="false"
+PRD_REF="main"
+PRD_SOURCE=""
+SCAFFOLD_STORIES="true"
+KEEP_LEGACY_COMMANDS="false"
 
 # -----------------------------------------------------------------------------
 # Help Function
@@ -34,15 +44,30 @@ Usage: $0 [OPTIONS]
 Install Agent OS into the current project directory.
 
 Options:
-    --profile <name>     Use specified profile (default: from config.yml)
-    --commands-only      Only update commands, preserve existing standards
-    --verbose            Show detailed output
-    -h, --help           Show this help message
+    --profile <name>        Use specified profile (default: from config.yml)
+    --commands-only         Only update skills/commands, preserve existing standards
+    --tools <list>          Agent tools to set up: claude,codex,cursor (default: all)
+    --copy                  Copy skills into .claude/skills instead of symlinking
+    --with-prd              Also install the Builder Methods PRD Creator skill
+    --prd-ref <ref>         bm-skills branch or tag for --with-prd (default: main)
+    --prd-source <dir>      Use a local bm-skills checkout instead of cloning
+    --no-stories            Skip scaffolding agent-os/user-stories and testing.yml
+    --keep-legacy-commands  Keep .claude/commands/agent-os/*.md files that collide with skills
+    --dry-run               Show what would change without writing anything
+    -y, --yes               Do not prompt (assume yes)
+    --verbose               Show detailed output
+    -h, --help              Show this help message
+
+Skills go to .agents/skills/ (read by Codex and Cursor) and are linked into
+.claude/skills/ (read by Claude Code). AGENTS.md gets a managed agent-os block
+and CLAUDE.md imports it.
 
 Examples:
     $0
     $0 --profile rails
-    $0 --commands-only
+    $0 --commands-only                # upgrade an existing project safely
+    $0 --commands-only --with-prd
+    $0 --tools codex,cursor
 
 EOF
     exit 0
@@ -61,6 +86,43 @@ parse_arguments() {
                 ;;
             --commands-only)
                 COMMANDS_ONLY="true"
+                shift
+                ;;
+            --tools)
+                TOOLS="$2"
+                shift 2
+                ;;
+            --copy)
+                LINK_MODE="copy"
+                shift
+                ;;
+            --with-prd)
+                WITH_PRD="true"
+                shift
+                ;;
+            --prd-ref)
+                PRD_REF="$2"
+                shift 2
+                ;;
+            --prd-source)
+                PRD_SOURCE="$2"
+                WITH_PRD="true"
+                shift 2
+                ;;
+            --no-stories)
+                SCAFFOLD_STORIES="false"
+                shift
+                ;;
+            --keep-legacy-commands)
+                KEEP_LEGACY_COMMANDS="true"
+                shift
+                ;;
+            --dry-run)
+                DRY_RUN="true"
+                shift
+                ;;
+            -y|--yes)
+                ASSUME_YES="true"
                 shift
                 ;;
             --verbose)
@@ -169,6 +231,10 @@ confirm_standards_overwrite() {
     local existing_standards="$PROJECT_DIR/agent-os/standards"
 
     if [[ -d "$existing_standards" ]]; then
+        if [[ "$ASSUME_YES" == "true" || "$DRY_RUN" == "true" ]]; then
+            print_warning "Existing standards at $existing_standards will be overwritten by profile '$EFFECTIVE_PROFILE'"
+            return 0
+        fi
         echo ""
         print_warning "Existing standards folder detected at: $existing_standards"
         echo ""
@@ -383,31 +449,17 @@ create_index() {
 
 install_commands() {
     echo ""
-    print_status "Installing commands..."
-
-    local commands_source="$BASE_DIR/commands/agent-os"
-    local commands_dest="$PROJECT_DIR/.claude/commands/agent-os"
-
-    if [[ ! -d "$commands_source" ]]; then
-        print_warning "No commands found in base installation"
-        return
+    install_skills
+    if [[ "$KEEP_LEGACY_COMMANDS" != "true" ]]; then
+        retire_colliding_commands
     fi
+}
 
-    ensure_dir "$commands_dest"
-
-    local count=0
-    for file in "$commands_source"/*.md; do
-        if [[ -f "$file" ]]; then
-            cp "$file" "$commands_dest/"
-            (( count++ )) || true
-        fi
-    done
-
-    if [[ "$count" -gt 0 ]]; then
-        print_success "Installed $count commands to .claude/commands/agent-os/"
-    else
-        print_warning "No command files found"
-    fi
+install_agent_files() {
+    echo ""
+    print_status "Updating agent instruction files..."
+    update_agents_md
+    update_claude_md
 }
 
 # -----------------------------------------------------------------------------
@@ -452,24 +504,54 @@ main() {
     echo "$chain_display"
 
     echo "  Commands only: $COMMANDS_ONLY"
+    echo "  Tools: $TOOLS"
+    [[ "$DRY_RUN" == "true" ]] && echo "  Dry run: nothing will be written"
 
     # Confirm overwrite if standards folder exists
     confirm_standards_overwrite
 
     echo ""
 
+    if [[ "$DRY_RUN" == "true" ]]; then
+        [[ "$COMMANDS_ONLY" == "true" ]] || echo "  would install standards from profile '$EFFECTIVE_PROFILE' and rebuild index.yml"
+        install_commands
+        install_agent_files
+        [[ "$SCAFFOLD_STORIES" == "true" ]] && scaffold_stories
+        [[ "$WITH_PRD" == "true" ]] && install_prd_skill
+        write_version_marker
+        echo ""
+        print_success "Dry run complete. Nothing was written."
+        return 0
+    fi
+
     # Install
     create_project_structure
+    begin_change_session "install"
     install_standards
     create_index
     install_commands
+    install_agent_files
+    if [[ "$SCAFFOLD_STORIES" == "true" ]]; then
+        echo ""
+        scaffold_stories
+    fi
+    if [[ "$WITH_PRD" == "true" ]]; then
+        echo ""
+        install_prd_skill || true
+    fi
+    write_version_marker
+    end_change_session
 
     echo ""
     print_success "Agent OS installed successfully!"
     echo ""
-    echo "Next steps:"
-    echo "  1. Run /discover-standards to extract patterns from your codebase"
-    echo "  2. Run /inject-standards to inject standards into your context"
+    echo "Next steps (same names in Claude Code, Codex, and Cursor):"
+    echo "  1. /discover-standards to extract patterns from your codebase"
+    echo "  2. /write-user-stories to capture what users must be able to do"
+    echo "  3. /verify-stories to check stories in a real browser and harden them into tests"
+    [[ "$WITH_PRD" == "true" ]] && echo "  4. /bm-prd-creator to plan a new app, then /prd-to-stories"
+    echo ""
+    echo "In Codex, invoke skills with \$skill-name or /skills. Rollback data: agent-os/.backups/"
     echo ""
 }
 

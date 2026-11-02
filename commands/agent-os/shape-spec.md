@@ -1,26 +1,29 @@
+---
+name: shape-spec
+description: Shape a significant feature into a spec saved in agent-os/specs/, including related user stories and a verification task. Use when the user runs /shape-spec or wants to plan a feature before building it.
+---
+
 # Shape Spec
 
-Gather context and structure planning for significant work. **Run this command while in plan mode.**
+Gather context and structure planning for significant work. **Best run in plan mode.**
 
 ## Important Guidelines
 
-- **Always use AskUserQuestion tool** when asking the user anything
+- **Ask with your structured question tool** when asking the user anything (AskUserQuestion in Claude Code; the ask or question tool in Cursor and Codex). If none is available, ask in chat and wait for the answer. In this file, AskUserQuestion means whichever applies.
 - **Offer suggestions** — Present options the user can confirm, adjust, or correct
 - **Keep it lightweight** — This is shaping, not exhaustive documentation
 
 ## Prerequisites
 
-This command **must be run in plan mode**.
+Plan mode is preferred (Claude Code plan mode, Cursor plan mode, or Codex plan or read-only mode).
 
-**Before proceeding, check if you are currently in plan mode.**
-
-If NOT in plan mode, **stop immediately** and tell the user:
+If you are not in plan mode, do not stop. Tell the user once:
 
 ```
-Shape-spec must be run in plan mode. Please enter plan mode first, then run /shape-spec again.
+Tip: shape-spec works best in plan mode. Continuing with inline planning; I won't edit code until you approve the plan.
 ```
 
-Do not proceed with any steps below until confirmed to be in plan mode.
+Then continue, and do not change any code until the user approves the plan in Step 9.
 
 ## Process
 
@@ -107,7 +110,26 @@ Should I include these in the spec? (yes / adjust: remove 3, add frontend/forms)
 
 Read the confirmed standards files to include their content in the plan context.
 
-### Step 6: Generate Spec Folder Name
+### Step 6: Link User Stories
+
+Read `agent-os/user-stories/index.yml` if it exists. Find stories this work creates or changes.
+
+Use AskUserQuestion:
+
+```
+These existing user stories relate to this work:
+- US-004 Reset password via email link (verified)
+
+I'd also add these new stories:
+- Invite a teammate by email: AC1 invite form sends email, AC2 invitee lands on signup with email prefilled
+- Revoke a pending invite: AC1 owner sees pending invites, AC2 revoke removes the link
+
+Include them? (yes / adjust / skip stories for this spec)
+```
+
+Follow the story format in the write-user-stories skill (`references/story-format.md`). New stories are written to `agent-os/user-stories/` as part of Task 1. If `agent-os/user-stories/` does not exist, offer to create it.
+
+### Step 7: Generate Spec Folder Name
 
 Create a folder name using this format:
 ```
@@ -122,7 +144,7 @@ Example: `2026-01-15-1430-user-comment-system/`
 
 **Note:** If `agent-os/specs/` doesn't exist, create it when saving the spec folder.
 
-### Step 7: Structure the Plan
+### Step 8: Structure the Plan
 
 Now build the plan with **Task 1 always being "Save spec documentation"**.
 
@@ -141,6 +163,7 @@ Create `agent-os/specs/{folder-name}/` with:
 - **shape.md** — Shaping notes (scope, decisions, context from our conversation)
 - **standards.md** — Relevant standards that apply to this work
 - **references.md** — Pointers to reference implementations studied
+- **stories.md** — Linked user story IDs (and write any new story files to `agent-os/user-stories/`)
 - **visuals/** — Any mockups or screenshots provided
 
 ## Task 2: [First implementation task]
@@ -151,29 +174,35 @@ Create `agent-os/specs/{folder-name}/` with:
 
 ...
 
+## Final Task: Verify Stories
+
+Run the verify-stories skill for the stories in stories.md: check each acceptance criterion in a real browser, harden passing checks into committed tests, and report failures.
+
 ---
 
 Does this plan structure look right? I'll fill in the implementation tasks next.
 ```
 
-### Step 8: Complete the Plan
+### Step 9: Complete the Plan
 
 After Task 1 is confirmed, continue building out the remaining implementation tasks based on:
 - The feature scope from Step 1
 - Patterns from reference implementations (Step 3)
 - Constraints from standards (Step 5)
+- Acceptance criteria from linked stories (Step 6)
 
 Each task should be specific and actionable.
 
-### Step 9: Ready for Execution
+### Step 10: Ready for Execution
 
 When the full plan is ready:
 
 ```
 Plan complete. When you approve and execute:
 
-1. Task 1 will save all spec documentation first
+1. Task 1 will save all spec documentation (and new user stories) first
 2. Then implementation tasks will proceed
+3. The final task verifies the linked stories in a browser and with tests
 
 Ready to start? (approve / adjust)
 ```
@@ -188,6 +217,7 @@ agent-os/specs/{YYYY-MM-DD-HHMM-feature-slug}/
 ├── shape.md          # Shaping decisions and context
 ├── standards.md      # Which standards apply and key points
 ├── references.md     # Pointers to similar code
+├── stories.md        # Linked user story IDs
 └── visuals/          # Mockups, screenshots (if any)
 ```
 
@@ -239,6 +269,16 @@ The following standards apply to this work.
 ## api/error-handling
 
 [Full content of the standard file]
+```
+
+## stories.md Content
+
+```markdown
+# Stories for {Feature Name}
+
+- US-004 Reset password via email link (existing)
+- US-011 Invite a teammate by email (new)
+- US-012 Revoke a pending invite (new)
 ```
 
 ## references.md Content
