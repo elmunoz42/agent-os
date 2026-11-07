@@ -176,6 +176,10 @@ Create `agent-os/specs/{folder-name}/` with:
 
 ...
 
+## Security Review (production level, if the security-audit skill is installed)
+
+Run a focused security review of the code this spec changed (security-audit guidance mode). Fix confirmed findings and add an `(edge)` AC for each fix to the linked stories. See the write-user-stories skill's `references/testing-levels.md`.
+
 ## Final Task: Verify Stories
 
 Run the verify-stories skill, at the project's testing level, for the stories in stories.md: check each acceptance criterion in a real browser, harden passing checks into committed tests, and report failures.

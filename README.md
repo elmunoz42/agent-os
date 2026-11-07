@@ -10,6 +10,7 @@ Fork of Agent OS v3 by Builder Methods, modernized for Claude Code, Codex, and C
 - **User stories.** `agent-os/user-stories/` holds long lived stories with Given/When/Then acceptance criteria and an `index.yml`.
 - **Browser verified stories.** `/verify-stories` starts your app, walks each acceptance criterion in a real browser (playwright-cli by default), runs unit tests, then hardens passing checks into committed Playwright tests tagged `@US-###`.
 - **PRD Creator integration.** Installs the Builder Methods [PRD Creator](https://github.com/buildermethods/bm-skills) as a dependency; `/prd-to-stories` turns its milestones into stories and wires milestone verification.
+- **Security review.** Optionally installs Cloudflare's [security-audit](https://github.com/cloudflare/security-audit-skill) skill. At production level, agents run a focused review of changed code before calling work done, and each fixed finding becomes an `(edge)` story criterion with a regression test.
 - **Safe upgrades.** `migrate.sh` upgrades one project or a whole folder of repos, on a branch, with dry run and rollback. Standards, product docs, and specs are never modified.
 
 ### Install
@@ -17,10 +18,27 @@ Fork of Agent OS v3 by Builder Methods, modernized for Claude Code, Codex, and C
 ```bash
 git clone https://github.com/elmunoz42/agent-os.git ~/agent-os
 cd /path/to/your/project
-~/agent-os/scripts/project-install.sh --with-prd
+~/agent-os/scripts/project-install.sh --with prd,security
 ```
 
 Useful flags: `--level demo|production`, `--tools claude,codex,cursor` (default all), `--copy` (no symlinks, for Windows), `--commands-only` (keep standards), `--dry-run`, `--yes`.
+
+### External skills
+
+Agent OS pulls in two third-party skills as optional dependencies. They are never vendored or edited, and each is pinned to a tested commit:
+
+| `--with` id | Skill | From | Used for |
+|---|---|---|---|
+| `prd` | bm-prd-creator | [Builder Methods](https://github.com/buildermethods/bm-skills) (MIT) | Planning new apps; `/prd-to-stories` turns milestones into stories |
+| `security` | security-audit | [Cloudflare](https://github.com/cloudflare/security-audit-skill) (MIT) | Focused review before done at production level; full audits on request |
+
+```bash
+project-install.sh --with prd,security        # or --with-prd / --with-security
+project-install.sh --with security --security-ref main   # track upstream instead of the pin
+migrate.sh --scan ~/code --apply --branch agent-os-3.1 --with security
+```
+
+Each installed copy records its source repo and commit in `.agent-os-managed`. To update the pins, change `EXTERNAL_SKILLS` in `scripts/lib/install-lib.sh` after testing. The security skill's full audit mode needs Node.js, and a sandbox if it is to run target code. Its reports go outside the repo by default.
 
 ### Upgrade existing projects
 

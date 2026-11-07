@@ -52,7 +52,7 @@ Same command. v2 is detected by `agent-os/instructions/`, `.claude/agents/agent-
 - Finds every folder with `agent-os/` up to depth 4 (`--depth n` to change), skipping node_modules, vendor, and the Agent OS repo itself.
 - Refuses repos with uncommitted changes (`--force` to override).
 - With `--branch`: checks out or creates the branch, upgrades, and commits. Never pushes. Review and merge per repo.
-- Add `--with-prd` to also install the PRD Creator everywhere.
+- Add `--with prd,security` to also install the PRD Creator and Cloudflare's security-audit skill everywhere (pinned to tested commits; `--prd-ref` or `--security-ref` to override).
 
 ## Rollback
 

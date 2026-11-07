@@ -19,9 +19,6 @@ DRY_RUN="true"
 FORCE="false"
 TOOLS="claude,codex,cursor"
 LINK_MODE="symlink"
-WITH_PRD="false"
-PRD_REF="main"
-PRD_SOURCE=""
 TEST_LEVEL=""
 BRANCH=""
 SCAN_DIR=""
@@ -47,10 +44,11 @@ Options:
     --force              Allow running on a git repo with uncommitted changes
     --tools <list>       claude,codex,cursor (default: all)
     --copy               Copy skills into .claude/skills instead of symlinking
-    --with-prd           Also install the Builder Methods PRD Creator skill
+    --with <ids>         Also install external skills: prd, security (comma separated)
+                         Aliases: --with-prd, --with-security
+    --<id>-ref <ref>     Branch, tag, or commit (default: the pinned tested commit)
+    --<id>-source <dir>  Install an external skill from a local checkout
     --level <level>      Set the testing level: demo or production
-    --prd-ref <ref>      bm-skills branch or tag (default: main)
-    --prd-source <dir>   Local bm-skills checkout to install from
     --verbose            Show detailed output
     -h, --help           Show this help
 
@@ -59,6 +57,7 @@ Examples:
     $0 --apply                          # upgrade current project
     $0 --scan ~/code                    # list projects and versions
     $0 --scan ~/code --apply --branch agent-os-3.1
+    $0 --scan ~/code --apply --branch agent-os-3.1 --with security
     $0 --rollback
 EOF
     exit 0
@@ -75,13 +74,13 @@ parse_arguments() {
             --force) FORCE="true"; shift ;;
             --tools) TOOLS="$2"; shift 2 ;;
             --copy) LINK_MODE="copy"; shift ;;
-            --with-prd) WITH_PRD="true"; shift ;;
             --level) TEST_LEVEL="$2"; shift 2 ;;
-            --prd-ref) PRD_REF="$2"; shift 2 ;;
-            --prd-source) PRD_SOURCE="$2"; WITH_PRD="true"; shift 2 ;;
             --verbose) VERBOSE="true"; shift ;;
             -h|--help) show_help ;;
-            -*) print_error "Unknown option: $1"; exit 1 ;;
+            -*)
+                parse_external_flag "$1" "${2:-}"
+                if [[ "$EXT_SHIFT" -gt 0 ]]; then shift "$EXT_SHIFT"; continue; fi
+                print_error "Unknown option: $1"; exit 1 ;;
             *) TARGET="$1"; shift ;;
         esac
     done
@@ -193,9 +192,7 @@ migrate_project() {
     update_agents_md
     update_claude_md
     scaffold_stories
-    if [[ "$WITH_PRD" == "true" ]]; then
-        install_prd_skill || true
-    fi
+    install_externals
     if [[ -n "$TEST_LEVEL" ]]; then set_testing_level "$TEST_LEVEL" || return 1; fi
     write_version_marker
     local session="$BACKUP_DIR"

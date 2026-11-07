@@ -154,7 +154,12 @@ _write_skill() {
     else
         cp -R "$src"/. "$dest"/
     fi
-    echo "$AOS_VERSION" > "$dest/$AOS_MARKER"
+    _marker_text > "$dest/$AOS_MARKER"
+}
+
+_marker_text() {
+    echo "$AOS_VERSION"
+    if [[ -n "$SKILL_SOURCE_NOTE" ]]; then echo "$SKILL_SOURCE_NOTE"; fi
 }
 
 # True if an installed managed skill already matches its source
@@ -167,7 +172,7 @@ _skill_unchanged() {
     else
         diff -rq -x "$AOS_MARKER" "$src" "$dest" >/dev/null 2>&1 || return 1
     fi
-    [[ "$(cat "$dest/$AOS_MARKER" 2>/dev/null)" == "$AOS_VERSION" ]]
+    [[ "$(cat "$dest/$AOS_MARKER" 2>/dev/null)" == "$(_marker_text)" ]]
 }
 
 # Install a skill dir that is managed by agent-os, without touching user skills
@@ -276,7 +281,7 @@ install_skills() {
     print_success "Installed $count skills to .agents/skills/$(tool_enabled claude && echo ' (linked into .claude/skills/)')"
 }
 
-# Install an external skill folder (used for the PRD dependency)
+# Install an external skill folder (see EXTERNAL_SKILLS)
 install_external_skill() {
     local name=$1 src=$2
     if _install_skill_to "$name" "$src" folder "$PROJECT_DIR/.agents/skills/$name"; then
@@ -497,40 +502,128 @@ write_version_marker() {
 }
 
 # -----------------------------------------------------------------------------
-# PRD Creator dependency (buildermethods/bm-skills)
+# External skills (optional dependencies, never vendored)
 # -----------------------------------------------------------------------------
 
-PRD_REPO_DEFAULT="https://github.com/buildermethods/bm-skills.git"
+# id|skill name|description|git repo|path in repo|pinned ref (tested commit)
+# Override a ref with --<id>-ref <branch|tag|sha>, or install from a local
+# checkout with --<id>-source <dir>.
+EXTERNAL_SKILLS=(
+"prd|bm-prd-creator|PRD Creator (Builder Methods, MIT)|https://github.com/buildermethods/bm-skills.git|skills/bm-prd-creator|7bee3357718c4d964c64574b7e677027a2400148"
+"security|security-audit|Security Audit (Cloudflare, MIT)|https://github.com/cloudflare/security-audit-skill.git|skills/security-audit|c1c8a8c1471069fb0e188eeaff69b8e8db6564a8"
+)
+WITH_EXTERNAL=""
+SKILL_SOURCE_NOTE=""
+# Only flags set these (never the environment)
+PRD_REF=""; PRD_SOURCE=""; SECURITY_REF=""; SECURITY_SOURCE=""
 
-# Install bm-prd-creator from a local checkout or by cloning bm-skills
-install_prd_skill() {
-    local source=${PRD_SOURCE:-}
-    local ref=${PRD_REF:-main}
-    local tmp=""
+external_ids() {
+    local e
+    for e in "${EXTERNAL_SKILLS[@]}"; do echo "${e%%|*}"; done
+}
+
+# external_field <id> <n>: 2=skill name 3=description 4=repo 5=path 6=pinned ref
+external_field() {
+    local e
+    for e in "${EXTERNAL_SKILLS[@]}"; do
+        if [[ "${e%%|*}" == "$1" ]]; then
+            echo "$e" | cut -d'|' -f"$2"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Add ids (comma separated) to WITH_EXTERNAL; exits on unknown ids
+add_external() {
+    local id
+    for id in $(echo "$1" | tr ',' ' '); do
+        if ! external_field "$id" 2 >/dev/null; then
+            print_error "Unknown external skill '$id'. Available: $(external_ids | tr '\n' ' ')"
+            exit 1
+        fi
+        case ",$WITH_EXTERNAL," in
+            *",$id,"*) ;;
+            *) WITH_EXTERNAL="${WITH_EXTERNAL:+$WITH_EXTERNAL,}$id" ;;
+        esac
+    done
+}
+
+# Upper-case variable prefix for an id: prd -> PRD
+_ext_var() { echo "$1" | tr '[:lower:]-' '[:upper:]_'; }
+
+# Install one external skill from a local checkout (<ID>_SOURCE) or a pinned clone
+install_external() {
+    local id=$1
+    local name desc repo path ref source tmp="" var
+    name=$(external_field "$id" 2); desc=$(external_field "$id" 3)
+    repo=$(external_field "$id" 4); path=$(external_field "$id" 5)
+    var=$(_ext_var "$id")
+    local ref_var="${var}_REF" src_var="${var}_SOURCE"
+    ref=${!ref_var:-}
+    [[ -z "$ref" ]] && ref=$(external_field "$id" 6)
+    source=${!src_var:-}
     if [[ -z "$source" ]]; then
         if [[ "$DRY_RUN" == "true" ]]; then
-            echo "  would clone $PRD_REPO_DEFAULT ($ref) and install bm-prd-creator"
+            echo "  would fetch $name from $repo at ${ref:0:12}"
             return 0
         fi
         tmp=$(mktemp -d)
-        print_status "Fetching PRD Creator from bm-skills ($ref)..."
-        if ! git clone -q --depth 1 --branch "$ref" "$PRD_REPO_DEFAULT" "$tmp/bm-skills" 2>/dev/null; then
-            print_warning "Could not clone bm-skills. Install it later with --with-prd, or in Claude Code: /plugin marketplace add buildermethods/bm-skills"
+        print_status "Fetching $desc at ${ref:0:12}..."
+        if ! { git init -q "$tmp/repo" && git -C "$tmp/repo" fetch -q --depth 1 "$repo" "$ref" \
+               && git -C "$tmp/repo" checkout -q FETCH_HEAD; } 2>/dev/null; then
+            print_warning "Could not fetch $name ($repo at $ref). Re-run later with --with $id."
             rm -rf "$tmp"
             return 1
         fi
-        source="$tmp/bm-skills"
+        source="$tmp/repo"
+        ref=$(git -C "$source" rev-parse HEAD)
+        SKILL_SOURCE_NOTE="source: $repo@$ref"
+    else
+        local sha
+        sha=$(git -C "$source" rev-parse HEAD 2>/dev/null || echo local)
+        SKILL_SOURCE_NOTE="source: $repo@$sha (local checkout)"
     fi
-    local skill="$source/skills/bm-prd-creator"
+    local skill="$source/$path"
     if [[ ! -f "$skill/SKILL.md" ]]; then
-        print_warning "bm-prd-creator not found in $source"
+        print_warning "$name not found at $path in $source"
+        SKILL_SOURCE_NOTE=""
         [[ -n "$tmp" ]] && rm -rf "$tmp"
         return 1
     fi
-    if install_external_skill "bm-prd-creator" "$skill"; then
-        [[ "$DRY_RUN" == "true" ]] || print_success "Installed PRD Creator (bm-prd-creator, MIT, Builder Methods)"
+    if install_external_skill "$name" "$skill"; then
+        [[ "$DRY_RUN" == "true" ]] || print_success "Installed $desc as $name"
     fi
+    SKILL_SOURCE_NOTE=""
     [[ -n "$tmp" ]] && rm -rf "$tmp"
+    return 0
+}
+
+install_externals() {
+    local id
+    [[ -z "$WITH_EXTERNAL" ]] && return 0
+    for id in $(echo "$WITH_EXTERNAL" | tr ',' ' '); do
+        install_external "$id" || true
+    done
+}
+
+# Shared flag parsing for external skills. Sets EXT_SHIFT to the number of
+# arguments consumed (0 if the flag is not an external-skill flag).
+EXT_SHIFT=0
+parse_external_flag() {
+    local flag=$1 value=${2:-} id var
+    EXT_SHIFT=0
+    case "$flag" in
+        --with) add_external "$value"; EXT_SHIFT=2; return 0 ;;
+        --with-*) add_external "${flag#--with-}"; EXT_SHIFT=1; return 0 ;;
+    esac
+    for id in $(external_ids); do
+        var=$(_ext_var "$id")
+        case "$flag" in
+            "--$id-ref") printf -v "${var}_REF" '%s' "$value"; EXT_SHIFT=2; return 0 ;;
+            "--$id-source") printf -v "${var}_SOURCE" '%s' "$value"; add_external "$id"; EXT_SHIFT=2; return 0 ;;
+        esac
+    done
     return 0
 }
 

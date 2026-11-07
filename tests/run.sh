@@ -209,22 +209,51 @@ for p in "$B/client-a" "$B/nested/client-b"; do
     assert "git -C '$p' ls-files | grep -q '.claude/skills/verify-stories'" "skill link not committed in $p"
 done
 
-section "PRD Creator dependency (--with-prd)"
-PRD_SRC="${PRD_SOURCE_DIR:-}"
-if [[ -z "$PRD_SRC" ]]; then
-    PRD_SRC="$WORK/bm-skills"
-    git clone -q --depth 1 https://github.com/buildermethods/bm-skills.git "$PRD_SRC" 2>/dev/null || PRD_SRC=""
-fi
-if [[ -n "$PRD_SRC" ]]; then
-    P="$WORK/prd"; mkdir -p "$P"
-    ( cd "$P" && "$INSTALL" --yes --prd-source "$PRD_SRC" >/dev/null 2>&1 )
-    assert_file "$P/.agents/skills/bm-prd-creator/SKILL.md"
+section "external skills: PRD Creator and Security Audit"
+fetch_src() {  # fetch_src <env dir> <repo> <dest>: use env dir or clone
+    if [[ -n "$1" ]]; then echo "$1"; return; fi
+    git clone -q --depth 1 "$2" "$3" 2>/dev/null && echo "$3"
+}
+PRD_SRC=$(fetch_src "${PRD_SOURCE_DIR:-}" https://github.com/buildermethods/bm-skills.git "$WORK/bm-skills")
+SEC_SRC=$(fetch_src "${SECURITY_SOURCE_DIR:-}" https://github.com/cloudflare/security-audit-skill.git "$WORK/security-audit-skill")
+if [[ -n "$PRD_SRC" && -n "$SEC_SRC" ]]; then
+    P="$WORK/ext"; mkdir -p "$P"
+    ( cd "$P" && "$INSTALL" --yes --prd-source "$PRD_SRC" --security-source "$SEC_SRC" >/dev/null 2>&1 )
+    for s in bm-prd-creator security-audit; do
+        assert_file "$P/.agents/skills/$s/SKILL.md"
+        assert "[[ \"\$(readlink '$P/.claude/skills/$s')\" == '../../.agents/skills/$s' ]]" ".claude/skills/$s not linked"
+        assert "sed -n 2p '$P/.agents/skills/$s/.agent-os-managed' | grep -q '^source: https://github.com/'" "$s has no source record"
+    done
     assert_file "$P/.agents/skills/bm-prd-creator/steps/write-files.md"
-    assert_file "$P/.claude/skills/bm-prd-creator/SKILL.md"
-    P="$WORK/v3"; ( cd "$P" && git add -A >/dev/null 2>&1; git commit -qm wip >/dev/null 2>&1; "$MIGRATE" --apply --prd-source "$PRD_SRC" "$P" >/dev/null 2>&1 )
+    assert_file "$P/.agents/skills/security-audit/validate-findings.cjs"
+    assert "diff -rq -x .agent-os-managed '$SEC_SRC/skills/security-audit' '$P/.agents/skills/security-audit' >/dev/null" "security-audit not copied verbatim"
+    assert "'$ROOT/scripts/validate-skills.sh' '$P/.agents/skills' >/dev/null" "external skills fail validation"
+    assert_grep "Security: if the security-audit skill is installed" "$P/AGENTS.md"
+    assert_grep "## Security Review (production level" "$P/.agents/skills/shape-spec/SKILL.md"
+    assert_grep "## Security review (production level)" "$P/.agents/skills/write-user-stories/references/testing-levels.md"
+    before=$(tree_sum "$P")
+    ( cd "$P" && "$INSTALL" --yes --commands-only --prd-source "$PRD_SRC" --security-source "$SEC_SRC" >/dev/null 2>&1 )
+    assert "[[ \"$before\" == \"\$(tree_sum '$P')\" ]]" "reinstalling external skills changed files"
+    P="$WORK/ext-alias"; mkdir -p "$P"
+    out=$(cd "$P" && SECURITY_SOURCE=/nonexistent "$INSTALL" --yes --with-security --dry-run 2>&1)
+    assert "echo \"\$out\" | grep -q 'would fetch security-audit from https://github.com/cloudflare/security-audit-skill.git'" "--with-security alias not honored"
+    assert "! echo \"\$out\" | grep -q 'bm-prd-creator'" "--with-security also selected the PRD skill"
+    ( cd "$P" && "$INSTALL" --yes --with nope >/dev/null 2>&1 ); rc=$?
+    assert "[[ $rc -ne 0 ]]" "unknown external skill accepted"
+    P="$WORK/v3"; ( cd "$P" && git add -A >/dev/null 2>&1; git commit -qm wip >/dev/null 2>&1; "$MIGRATE" --apply --prd-source "$PRD_SRC" --security-source "$SEC_SRC" "$P" >/dev/null 2>&1 )
     assert_file "$P/.agents/skills/bm-prd-creator/SKILL.md"
+    assert_file "$P/.agents/skills/security-audit/SKILL.md"
+    # Default install fetches the pinned, tested commit
+    P="$WORK/ext-pinned"; mkdir -p "$P"
+    ( cd "$P" && "$INSTALL" --yes --with security >/dev/null 2>&1 )
+    if [[ -f "$P/.agents/skills/security-audit/SKILL.md" ]]; then
+        pinned=$(grep -o 'security-audit-skill.git|skills/security-audit|[0-9a-f]*' "$ROOT/scripts/lib/install-lib.sh" | cut -d'|' -f3)
+        assert "grep -q '@$pinned$' '$P/.agents/skills/security-audit/.agent-os-managed'" "default install did not use the pinned commit"
+    else
+        echo "  (pinned fetch skipped: GitHub not reachable)"
+    fi
 else
-    echo "  (skipped: bm-skills not reachable; set PRD_SOURCE_DIR)"
+    echo "  (skipped: external skill repos not reachable; set PRD_SOURCE_DIR and SECURITY_SOURCE_DIR)"
 fi
 
 section "testing level: demo or production"

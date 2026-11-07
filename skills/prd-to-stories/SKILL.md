@@ -24,7 +24,7 @@ Look for `_build_plan/prd.md`, then `_build_plan/prd.html`. If both exist, use p
 No PRD found in _build_plan/. Run the bm-prd-creator skill first, or point me to a PRD file.
 ```
 
-If bm-prd-creator is not installed, mention: install it with `project-install.sh --commands-only --with-prd`, or in Claude Code `/plugin marketplace add buildermethods/bm-skills`.
+If bm-prd-creator is not installed, mention: install it with `project-install.sh --commands-only --with prd`, or in Claude Code `/plugin marketplace add buildermethods/bm-skills`.
 
 ### Step 2: Extract scope per milestone
 

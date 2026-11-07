@@ -35,15 +35,16 @@ skip() { SKIP=$((SKIP+1)); echo "  - skipped: $1"; }
 check() { if eval "$1"; then ok; else fail "${2:-$1}"; fi; }
 section() { CURRENT=$1; echo "• $1"; }
 
-SKILLS="bm-prd-creator discover-standards index-standards inject-standards plan-product prd-to-stories shape-spec verify-stories write-user-stories"
+SKILLS="bm-prd-creator security-audit discover-standards index-standards inject-standards plan-product prd-to-stories shape-spec verify-stories write-user-stories"
 
-# One installed project shared by all checks (with the PRD dependency)
+# One installed project shared by all checks (with both external skills)
 P="$WORK/project"; mkdir -p "$P"; git -C "$P" init -q
-PRD_ARGS=(--with-prd)
-[[ -n "${PRD_SOURCE_DIR:-}" ]] && PRD_ARGS=(--prd-source "$PRD_SOURCE_DIR")
+PRD_ARGS=(--with prd,security)
+[[ -n "${PRD_SOURCE_DIR:-}" ]] && PRD_ARGS+=(--prd-source "$PRD_SOURCE_DIR")
+[[ -n "${SECURITY_SOURCE_DIR:-}" ]] && PRD_ARGS+=(--security-source "$SECURITY_SOURCE_DIR")
 ( cd "$P" && "$ROOT/scripts/project-install.sh" --yes "${PRD_ARGS[@]}" >/dev/null 2>&1 )
-if [[ ! -f "$P/.agents/skills/bm-prd-creator/SKILL.md" ]]; then
-    echo "bm-prd-creator did not install (network?). Set PRD_SOURCE_DIR to a bm-skills checkout."
+if [[ ! -f "$P/.agents/skills/bm-prd-creator/SKILL.md" || ! -f "$P/.agents/skills/security-audit/SKILL.md" ]]; then
+    echo "External skills did not install (network?). Set PRD_SOURCE_DIR and SECURITY_SOURCE_DIR to local checkouts."
     exit 1
 fi
 
@@ -165,7 +166,10 @@ if len(names) != len(set(names)): print("Cursor loaded duplicate skills: %d entr
 for s in loaded:
     if not s["path"].startswith(want_dir + "/"): print("skill loaded from unexpected folder: " + s["path"])
     if s["parseError"]: print("Cursor parse error in %s: %s" % (s["path"], s["parseError"]))
-    for w in s["warnings"]: print("Cursor warning in %s: %s" % (s["path"], w))
+    external = s["path"].split("/")[-2] in ("bm-prd-creator", "security-audit")
+    for w in s["warnings"]:
+        # Third-party skills are installed unmodified: report their Cursor warnings, don't fail on them
+        print("%s in %s: %s" % ("NOTE Cursor warning" if external else "Cursor warning", s["path"], w))
     if s["type"] != "agentFetched": print("%s loaded as %s, expected agentFetched" % (s["path"], s["type"]))
 rules = {r["path"]: r for r in d["projectRules"]}
 for r in want_rules:
@@ -173,6 +177,9 @@ for r in want_rules:
         print("Cursor did not load %s as a project rule" % r)
 PY3
 )
+                notes=$(echo "$problems" | grep '^NOTE ' || true)
+                problems=$(echo "$problems" | grep -v '^NOTE ' || true)
+                [[ -n "$notes" ]] && echo "$notes" | sed 's/^NOTE /  note: /'
                 if [[ -z "$problems" ]]; then
                     ok; echo "  ✓ $label: $(echo "$SKILLS" | wc -w | tr -d ' ') skills from $dir, rules: $want_rules"
                 else

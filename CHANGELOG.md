@@ -31,6 +31,10 @@ Fork of v3 by elmunoz42. Backward compatible with v3 projects; migration path fo
 
 - Story status report: `verify-stories/scripts/stories_report.py` (Python 3, standard library only) prints a summary and writes a static `agent-os/user-stories/report.html` with status, verified level, sets, AC counts, test files (missing flagged), and last verified date; `--set demo|production` filters. verify-stories refreshes it after each run; the installer gitignores it.
 
+- External skills registry (`EXTERNAL_SKILLS` in `scripts/lib/install-lib.sh`): `--with prd,security` (aliases `--with-prd`, `--with-security`), `--<id>-ref`, `--<id>-source`, on both project-install.sh and migrate.sh. Each skill is pinned to a tested commit and records its source in `.agent-os-managed`.
+- Cloudflare security-audit skill (MIT) as an optional dependency. At production level, agents run a focused review of changed code (guidance mode) before declaring work done and add an `(edge)` AC for each fixed finding; full audits only on request. Wired into the AGENTS.md block, shape-spec plans, and `testing-levels.md`.
+- The PRD Creator is now pinned to a tested bm-skills commit instead of tracking main (`--prd-ref main` restores the old behavior).
+
 ### Changed
 
 - `shape-spec` no longer stops outside plan mode; it links or writes user stories (Step 6), saves `stories.md`, and ends every plan with a verify stories task.

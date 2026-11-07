@@ -27,9 +27,6 @@ ASSUME_YES="false"
 DRY_RUN="false"
 TOOLS="claude,codex,cursor"
 LINK_MODE="symlink"
-WITH_PRD="false"
-PRD_REF="main"
-PRD_SOURCE=""
 TEST_LEVEL=""
 SCAFFOLD_STORIES="true"
 KEEP_LEGACY_COMMANDS="false"
@@ -49,9 +46,13 @@ Options:
     --commands-only         Only update skills/commands, preserve existing standards
     --tools <list>          Agent tools to set up: claude,codex,cursor (default: all)
     --copy                  Copy skills into .claude/skills instead of symlinking
-    --with-prd              Also install the Builder Methods PRD Creator skill
-    --prd-ref <ref>         bm-skills branch or tag for --with-prd (default: main)
-    --prd-source <dir>      Use a local bm-skills checkout instead of cloning
+    --with <ids>            Also install external skills, comma separated:
+                              prd       PRD Creator (Builder Methods)
+                              security  Security Audit (Cloudflare)
+                            Aliases: --with-prd, --with-security
+    --<id>-ref <ref>        Branch, tag, or commit for an external skill
+                            (default: the tested commit pinned in install-lib.sh)
+    --<id>-source <dir>     Install an external skill from a local checkout
     --no-stories            Skip scaffolding agent-os/user-stories and testing.yml
     --level <level>         Testing level: demo (happy path) or production (edge cases).
                             Omit to have agents ask once and save the answer.
@@ -69,7 +70,7 @@ Examples:
     $0
     $0 --profile rails
     $0 --commands-only                # upgrade an existing project safely
-    $0 --commands-only --with-prd
+    $0 --commands-only --with prd,security
     $0 --tools codex,cursor
 
 EOF
@@ -99,19 +100,6 @@ parse_arguments() {
                 LINK_MODE="copy"
                 shift
                 ;;
-            --with-prd)
-                WITH_PRD="true"
-                shift
-                ;;
-            --prd-ref)
-                PRD_REF="$2"
-                shift 2
-                ;;
-            --prd-source)
-                PRD_SOURCE="$2"
-                WITH_PRD="true"
-                shift 2
-                ;;
             --level)
                 TEST_LEVEL="$2"
                 shift 2
@@ -140,6 +128,11 @@ parse_arguments() {
                 show_help
                 ;;
             *)
+                parse_external_flag "$1" "${2:-}"
+                if [[ "$EXT_SHIFT" -gt 0 ]]; then
+                    shift "$EXT_SHIFT"
+                    continue
+                fi
                 print_error "Unknown option: $1"
                 show_help
                 ;;
@@ -527,7 +520,7 @@ main() {
         install_commands
         install_agent_files
         [[ "$SCAFFOLD_STORIES" == "true" ]] && scaffold_stories
-        [[ "$WITH_PRD" == "true" ]] && install_prd_skill
+        install_externals
         if [[ -n "$TEST_LEVEL" ]]; then set_testing_level "$TEST_LEVEL"; fi
         write_version_marker
         echo ""
@@ -546,9 +539,9 @@ main() {
         echo ""
         scaffold_stories
     fi
-    if [[ "$WITH_PRD" == "true" ]]; then
+    if [[ -n "$WITH_EXTERNAL" ]]; then
         echo ""
-        install_prd_skill || true
+        install_externals
     fi
     if [[ -n "$TEST_LEVEL" ]]; then set_testing_level "$TEST_LEVEL" || exit 1; fi
     write_version_marker
@@ -561,7 +554,8 @@ main() {
     echo "  1. /discover-standards to extract patterns from your codebase"
     echo "  2. /write-user-stories to capture what users must be able to do"
     echo "  3. /verify-stories to check stories in a real browser and harden them into tests"
-    [[ "$WITH_PRD" == "true" ]] && echo "  4. /bm-prd-creator to plan a new app, then /prd-to-stories"
+    case ",$WITH_EXTERNAL," in *",prd,"*) echo "  -  /bm-prd-creator to plan a new app, then /prd-to-stories" ;; esac
+    case ",$WITH_EXTERNAL," in *",security,"*) echo "  -  /security-audit for a focused review (production level runs one before done)" ;; esac
     echo ""
     echo "In Codex, invoke skills with \$skill-name or /skills. Rollback data: agent-os/.backups/"
     echo ""

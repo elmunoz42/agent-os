@@ -21,5 +21,5 @@ Fork of [buildermethods/agent-os](https://github.com/buildermethods/agent-os) v3
 - Skill names: lowercase, digits, single hyphens; folder name matches frontmatter `name`; frontmatter keys limited to those `scripts/validate-skills.sh` allows, so skills load in all three tools.
 - Scripts must run on bash 3.2 (macOS): no associative arrays, no `mapfile`, no `${var,,}`. Under `set -e`, never end a function or loop body with `[[ cond ]] && cmd`; use `if`.
 - Every installer write is tracked for rollback (`track_create`, `track_modify`, `backup_move`) and skipped when content is unchanged.
-- The PRD Creator is a dependency (`buildermethods/bm-skills`, MIT). Do not vendor or edit it.
+- External skills (PRD Creator from `buildermethods/bm-skills`, security-audit from `cloudflare/security-audit-skill`, both MIT) are dependencies listed in `EXTERNAL_SKILLS` in `scripts/lib/install-lib.sh`, pinned to tested commits. Never vendor or edit them. Bump a pin only after `tests/run.sh` and `tests/compat.sh` pass against the new commit.
 - Before committing: `tests/run.sh` must pass. Add a CHANGELOG entry for user visible changes.

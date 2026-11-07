@@ -12,6 +12,7 @@ Every project has a testing level. It decides how many stories and acceptance cr
 | Unit ACs | Run existing tests; write new ones only for logic the demo depends on | Required: every `(unit)` AC has a test |
 | Hardened e2e tests | One happy path test per story, tagged `@demo` | One test per browser AC; happy path tagged `@demo`, edge tagged `@prod` |
 | Failure on an in-scope AC | Report it and offer a quick fix; demo stays usable | Blocks done until fixed or the user accepts it as a known bug |
+| Security review (if the `security-audit` skill is installed) | Skip unless asked; never commit secrets or keys | Focused review of the changed code before done; each fixed finding gets an `(edge)` AC |
 | Time budget | Minutes per story: keep moving | As long as it takes to be thorough |
 
 A story verified at `production` level also counts as verified for `demo`. The reverse is not true.
@@ -39,6 +40,17 @@ A one-off request (for example a production check on a demo project) applies to 
 - ACs without a tag are happy path and belong to both sets.
 - `(edge)` marks an AC as production only. `(unit)` marks logic proven by a unit test. They combine: `(edge, unit)`.
 - Changing a project from demo to production never invalidates stories; it adds edge ACs and `[production]` stories alongside them.
+
+## Security review (production level)
+
+When the `security-audit` skill (Cloudflare) is installed, run it before declaring production work done:
+
+1. Use its **guidance mode** on the code this work changed: ask for a focused security review of those files and the trust boundaries they touch. Guidance mode writes no audit files.
+2. Fix each `confirmed` finding. For each fix, add an `(edge)` AC to the affected story, or a new `sets: [production]` story, that states the blocked attack as observable behavior (for example: Given another team's invite ID, when I open it, then I see Not found). verify-stories then locks the fix in with a `@prod` test.
+3. Report `needs_validation` findings to the user with their exact unresolved fact. Do not guess.
+4. Run its **full audit mode** (six phases, reports written outside the repo by default) only when the user asks, for example before a first production release.
+
+At demo level, skip the review unless the user asks, but never commit secrets, keys, or real customer data.
 
 ## Edge case checklist (production level)
 
